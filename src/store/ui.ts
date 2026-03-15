@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { BlockCategory } from "@/types";
+import type { BlockCategory, ChatMessage, ProposedBlock } from "@/types";
 
 interface UIStoreState {
   selectedCategory: BlockCategory;
@@ -14,11 +14,24 @@ interface UIStoreState {
   contextMenu: { x: number; y: number; blockId: string; scriptId: string } | null;
   openContextMenu: (x: number, y: number, blockId: string, scriptId: string) => void;
   closeContextMenu: () => void;
+
+  chatMessages: ChatMessage[];
+  addChatMessage: (message: ChatMessage) => void;
+  markProposalAccepted: (index: number) => void;
+  clearChat: () => void;
+
+  isCosmoThinking: boolean;
+  setCosmoThinking: (thinking: boolean) => void;
 }
 
 const ALL_CATEGORIES: BlockCategory[] = [
   "motion", "looks", "sound", "events", "control", "sensing", "operators",
 ];
+
+const WELCOME_MESSAGE: ChatMessage = {
+  role: "cosmo",
+  content: "Hi! I'm Cosmo 🤖 Tell me what you want to build and I'll help you make it!",
+};
 
 export const useUIStore = create<UIStoreState>((set) => ({
   selectedCategory: "motion",
@@ -43,4 +56,20 @@ export const useUIStore = create<UIStoreState>((set) => ({
   openContextMenu: (x, y, blockId, scriptId) =>
     set({ contextMenu: { x, y, blockId, scriptId } }),
   closeContextMenu: () => set({ contextMenu: null }),
+
+  chatMessages: [WELCOME_MESSAGE],
+  addChatMessage: (message) =>
+    set((state) => ({ chatMessages: [...state.chatMessages, message] })),
+  markProposalAccepted: (index) =>
+    set((state) => ({
+      chatMessages: state.chatMessages.map((msg, i) =>
+        i === index ? { ...msg, accepted: true } : msg,
+      ),
+    })),
+  clearChat: () => set({ chatMessages: [WELCOME_MESSAGE] }),
+
+  isCosmoThinking: false,
+  setCosmoThinking: (thinking) => set({ isCosmoThinking: thinking }),
 }));
+
+export type { ProposedBlock };
