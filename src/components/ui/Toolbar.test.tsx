@@ -6,7 +6,19 @@ vi.mock('@/scratch/setup', () => ({
   initializeScratchVM: () => ({
     runtime: { targets: [] },
     start: vi.fn(),
+    on: vi.fn(),
+    off: vi.fn(),
+    editingTarget: null,
+    setEditingTarget: vi.fn(),
+    postIOData: vi.fn(),
   }),
+  loadDefaultProject: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('@/scratch/spriteAdapter', () => ({
+  setSpriteVM: vi.fn(),
+  addDefaultSprite: vi.fn().mockResolvedValue(undefined),
+  deleteSprite: vi.fn(),
 }))
 
 describe('Toolbar', () => {

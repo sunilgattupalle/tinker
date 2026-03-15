@@ -9,7 +9,27 @@ vi.mock('@/scratch/setup', () => ({
     off: vi.fn(),
     editingTarget: null,
     setEditingTarget: vi.fn(),
+    postIOData: vi.fn(),
   }),
+  loadDefaultProject: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('@/scratch/spriteAdapter', () => ({
+  setSpriteVM: vi.fn(),
+  addDefaultSprite: vi.fn().mockResolvedValue(undefined),
+  deleteSprite: vi.fn(),
+  getTargets: () => [],
+  getActiveTarget: () => null,
+  setActiveTarget: vi.fn(),
+  getSpriteInfo: () => null,
+  spriteAdapter: {
+    getTargets: () => [],
+    getActiveTarget: () => null,
+    setActiveTarget: vi.fn(),
+    addDefaultSprite: vi.fn().mockResolvedValue(undefined),
+    deleteSprite: vi.fn(),
+    getSpriteInfo: () => null,
+  },
 }))
 
 describe('App', () => {
