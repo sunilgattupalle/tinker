@@ -1,78 +1,99 @@
 # Spec 03 — Block System
 
 **Depends on:** 02-layout
-**Outcome:** Blocks render in the palette with category colors, can be dragged onto the script canvas, snap together, and can be edited and deleted.
+**Outcome:** Blocks render in the palette with category colors (sourced from scratch-vm opcodes), can be dragged onto the script canvas, snap together via the VM's block API, and can be edited and deleted.
 
 ---
 
 ## What to Build
 
-The core block system: definitions, rendering, drag-and-drop, and snapping. This is the heart of Tinker — the visual programming interface. No execution yet (that's spec 04).
+The block palette and script canvas — powered by scratch-vm under the hood. We build our own React block UI for full styling control, but all block data and operations flow through scratch-vm's block API via the adapter layer.
+
+Key difference from building custom: we don't define blocks or write an interpreter. scratch-vm already has 100+ block opcodes with execution logic. We build the visual layer.
 
 ---
 
 ## Tasks
 
-### 1. Block definitions
+### 1. Opcode registry
 
-Create `src/blocks/definitions.ts`:
+Create `src/scratch/opcodes.ts`:
 
-Define at least these starter blocks:
+Map scratch-vm's block opcodes to UI-friendly metadata. Include at minimum these starter blocks (the full Scratch vocabulary can be added later):
 
 **Motion:**
-- `motion_move` — "move {STEPS} steps" (default: 10)
-- `motion_turn_right` — "turn ↻ {DEGREES} degrees" (default: 15)
-- `motion_turn_left` — "turn ↺ {DEGREES} degrees" (default: 15)
-- `motion_goto_xy` — "go to x: {X} y: {Y}" (default: 0, 0)
-- `motion_set_x` — "set x to {X}" (default: 0)
-- `motion_set_y` — "set y to {Y}" (default: 0)
+- `motion_movesteps` — "move {STEPS} steps" (default: 10)
+- `motion_turnright` — "turn ↻ {DEGREES} degrees" (default: 15)
+- `motion_turnleft` — "turn ↺ {DEGREES} degrees" (default: 15)
+- `motion_gotoxy` — "go to x: {X} y: {Y}" (default: 0, 0)
+- `motion_setx` — "set x to {X}" (default: 0)
+- `motion_sety` — "set y to {Y}" (default: 0)
 
 **Looks:**
 - `looks_say` — "say {MESSAGE}" (default: "Hello!")
-- `looks_say_for` — "say {MESSAGE} for {SECONDS} seconds" (default: "Hello!", 2)
+- `looks_sayforsecs` — "say {MESSAGE} for {SECS} seconds" (default: "Hello!", 2)
 - `looks_show` — "show"
 - `looks_hide` — "hide"
-- `looks_set_size` — "set size to {PERCENT}%" (default: 100)
+- `looks_setsizeto` — "set size to {SIZE}%" (default: 100)
 
 **Events (hat blocks):**
-- `events_flag` — "when 🟢 clicked"
-- `events_key` — "when {KEY} key pressed" (dropdown: space, up, down, left, right, a-z)
-- `events_sprite_clicked` — "when this sprite clicked"
+- `event_whenflagclicked` — "when 🟢 clicked"
+- `event_whenkeypressed` — "when {KEY_OPTION} key pressed" (dropdown)
+- `event_whenthisspriteclicked` — "when this sprite clicked"
 
 **Control:**
-- `control_wait` — "wait {SECONDS} seconds" (default: 1)
-- `control_repeat` — "repeat {TIMES}" (default: 10) — has a nested body
-- `control_forever` — "forever" — has a nested body
-- `control_if` — "if {CONDITION} then" — has a nested body
-- `control_stop` — "stop all" (cap block)
+- `control_wait` — "wait {DURATION} seconds" (default: 1)
+- `control_repeat` — "repeat {TIMES}" (default: 10) — has a nested body (SUBSTACK)
+- `control_forever` — "forever" — has a nested body (SUBSTACK)
+- `control_if` — "if {CONDITION} then" — has a nested body (SUBSTACK)
+- `control_stop` — "stop [all v]" (cap block)
 
 **Sensing:**
-- `sensing_key_pressed` — "key {KEY} pressed?" (boolean reporter)
+- `sensing_keypressed` — "key {KEY_OPTION} pressed?" (boolean reporter)
 
 **Operators:**
-- `operators_random` — "pick random {FROM} to {TO}" (reporter)
-- `operators_add` — "{A} + {B}" (reporter)
+- `operator_random` — "pick random {FROM} to {TO}" (reporter)
+- `operator_add` — "{NUM1} + {NUM2}" (reporter)
 
-### 2. Block registry
+Export an `OpcodeRegistry` object implementing the interface from `docs/api-contracts.md`.
 
-Create `src/blocks/registry.ts`:
-- Export a map of all block definitions indexed by ID
-- Export helper: `getBlocksByCategory(category)` — returns all blocks in a category
-- Export helper: `getBlockDefinition(id)` — returns a single definition
+### 2. Block adapter
+
+Create `src/scratch/blockAdapter.ts`:
+
+Implement the `BlockAdapter` interface from `docs/api-contracts.md`. This is the critical bridge between our UI and scratch-vm.
+
+**How scratch-vm blocks work internally:**
+- Blocks are stored in a flat map indexed by ID within each target's `blocks` object
+- Each block has `opcode`, `next`, `parent`, `inputs`, `fields`, `topLevel`
+- The VM expects Blockly-style event objects dispatched via `vm.blockListener(event)`
+- Event types: `create`, `change`, `move`, `delete`
+
+The adapter must:
+- Construct proper event objects for `vm.blockListener()`
+- Map between our UIBlock format and scratch-vm's SB3Block format
+- Handle connection logic (setting `next`/`parent` pointers)
+- Read block data from `vm.editingTarget.blocks._blocks`
 
 ### 3. Block component
 
-Create a `Block` component that renders a single block:
+Create `src/components/ui/Block.tsx` — renders a single block:
 - Rounded rectangle with the category color
 - Label text with input fields rendered inline
-- Correct shape (hat = rounded top, cap = flat bottom, reporter = pill, boolean = hexagonal)
-- Notch at top and bump at bottom for stack blocks
+- Correct shape:
+  - **hat** = rounded top (events)
+  - **stack** = notch top, bump bottom (most blocks)
+  - **cap** = notch top, flat bottom (stop)
+  - **reporter** = pill/rounded (values)
+  - **boolean** = hexagonal (true/false)
 - Input fields: number inputs are editable, dropdowns show a select menu
 - Visual size: 40px height for single-line, taller for nested blocks
+- Notch/bump connection points for stack blocks
 
 ### 4. Block Palette (real content)
 
 Update `src/components/BlockPalette/BlockPalette.tsx`:
+- Read available blocks from the opcode registry
 - Render categories as collapsible sections
 - Each section lists the blocks for that category using the Block component
 - Clicking a category header toggles it open/closed
@@ -82,20 +103,18 @@ Update `src/components/BlockPalette/BlockPalette.tsx`:
 ### 5. Drag and drop
 
 Implement drag-and-drop for blocks:
-- **Drag from palette:** Creates a clone. The palette block stays. A ghost block (50% opacity) follows the cursor.
-- **Drop on canvas:** The block appears at the drop position. If dropped near another block's connection point, it snaps.
-- **Drag on canvas:** Picks up the block and everything below it in the stack.
-- **Drop off canvas:** Deletes the block(s).
+- **Drag from palette:** Creates a ghost block (50% opacity) following the cursor. The palette block stays.
+- **Drop on canvas:** Calls `blockAdapter.createBlock()` to add the block to the VM workspace. If dropped near another block's connection point, calls `blockAdapter.connectBlocks()` to snap them.
+- **Drag on canvas:** Calls `blockAdapter.disconnectBlock()` on pickup, then reconnects on drop.
+- **Drop off canvas:** Calls `blockAdapter.deleteBlock()`.
 
-Use the HTML Drag and Drop API or a lightweight library like `@dnd-kit/core`. Prefer `@dnd-kit` for better React integration.
-
-Add `@dnd-kit/core` and `@dnd-kit/sortable` as dependencies.
+Use `@dnd-kit/core` and `@dnd-kit/sortable` for drag-and-drop. Install as dependencies.
 
 ### 6. Block snapping
 
 When a block is dropped on the canvas:
 - Check proximity to existing block connection points (within 20px)
-- If close enough, snap: insert the dropped block into the sequence
+- If close enough, snap via `blockAdapter.connectBlocks()`
 - Visual feedback: highlight the snap target while dragging near it (glow effect)
 - Hat blocks can only be at the top of a stack
 - Cap blocks can only be at the bottom
@@ -103,46 +122,50 @@ When a block is dropped on the canvas:
 ### 7. Script canvas (real content)
 
 Update `src/components/ScriptCanvas/ScriptCanvas.tsx`:
-- Render all scripts for the active sprite
-- Each script is a vertical stack of connected blocks
+- Subscribe to the project store for block data
+- Render all scripts for the active sprite using `blockAdapter.getBlocksForTarget()`
+- Each script is a vertical stack of connected Block components
 - Multiple scripts can exist side by side on the canvas
 - The canvas is pannable (drag empty space to scroll)
 - Right-click a block: context menu with "Delete block" and "Delete script"
 
 ### 8. Nested blocks (control flow)
 
-For `repeat`, `forever`, and `if` blocks:
-- Render a C-shaped block that wraps its children
+For `control_repeat`, `control_forever`, and `control_if`:
+- Render a C-shaped block that wraps its children (SUBSTACK)
 - Children blocks render inside the mouth of the C
 - The C-shape grows to fit its children
-- Dragging into the mouth area snaps the block as a child
+- Dropping into the mouth area snaps the block as a child via `blockAdapter.connectBlocks(blockId, parentId, 'SUBSTACK')`
+- Read nested blocks from the VM using `target.blocks.getBranch(blockId)`
 
 ### 9. Block editing
 
-- Clicking a number input in a canvas block: shows an inline editor (select all, type new value)
+- Clicking a number input in a canvas block: shows an inline editor
 - Clicking a dropdown: shows a dropdown menu with options
-- Changes update the block instance in the project store
+- Changes call `blockAdapter.changeBlockInput()` or `blockAdapter.changeBlockField()`
 
-### 10. Zustand store integration
+### 10. Project store integration
 
 Implement the `project` store (`src/store/project.ts`):
-- Holds the current project state (sprites, scripts, blocks)
-- Implements `addBlock`, `removeBlock`, `moveBlock`, `updateBlockArgs`
-- The palette reads block definitions from the registry
-- The canvas reads/writes block instances from/to the store
+- Initialize with a reference to the scratch-vm instance
+- Subscribe to `vm.on('workspaceUpdate', ...)` → re-read blocks for the editing target
+- Subscribe to `vm.on('targetsUpdate', ...)` → update target list
+- Expose reactive `blocks` and `targets` state to React components
+- Actions call adapter functions, which call VM, which emits events, which update the store
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] Block palette shows all categories with correct colors
-- [ ] Each category lists its blocks with proper labels
+- [ ] Block palette shows all categories with correct Scratch colors
+- [ ] Each category lists its blocks with proper labels matching scratch-vm opcodes
 - [ ] Blocks can be dragged from the palette to the canvas
+- [ ] Dropping a block calls `blockAdapter.createBlock()` and the block appears in the VM
 - [ ] Blocks snap together when dropped near a connection point
 - [ ] Hat blocks can only be at the top of a stack
-- [ ] Nested blocks (repeat, forever, if) render as C-shapes with droppable interiors
+- [ ] Nested blocks (repeat, forever, if) render as C-shapes with droppable SUBSTACK interiors
 - [ ] Block inputs are editable on the canvas (numbers and dropdowns)
 - [ ] Blocks can be deleted (drag off canvas or right-click → delete)
 - [ ] Multiple separate scripts can exist on the canvas
-- [ ] Project store correctly tracks all block state
+- [ ] The project store reactively updates when VM state changes
 - [ ] Dragging a block picks up everything below it in the stack

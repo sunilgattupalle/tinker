@@ -1,13 +1,13 @@
 # Spec 06 — Starter Templates
 
 **Depends on:** 03-block-system, 04-sprite-stage, 05-cosmo-ai
-**Outcome:** Kids can choose from pre-built starter projects that give them a running start and invite tinkering.
+**Outcome:** Kids can choose from pre-built starter projects (standard .sb3 files) that give them a running start and invite tinkering.
 
 ---
 
 ## What to Build
 
-Three starter templates that demonstrate what Tinker can do. These are pre-built projects with sprites and scripts already in place. The kid can run them immediately, then modify them with Cosmo's help. Each template should teach different block categories.
+Three starter templates as `.sb3` files that load into scratch-vm. These are real Scratch projects — they could even be opened in Scratch itself. The kid can run them immediately, then modify them with Cosmo's help.
 
 ---
 
@@ -16,43 +16,59 @@ Three starter templates that demonstrate what Tinker can do. These are pre-built
 ### 1. Template system
 
 Create `src/templates/`:
-- Each template is a JSON file matching the `Project` type
-- Template loader function: `loadTemplate(id: string): Project`
+- Each template is an `.sb3` file stored in `public/assets/templates/`
+- Template metadata (name, description, icon) stored in a `templates.ts` config file
+- Template loader function: `loadTemplate(id: string)` → fetches the .sb3 file and calls `vm.loadProject(buffer)`
 - Template selector UI: shown on the welcome screen and accessible from a "New Project" menu
 
-### 2. Template: Pet Simulator
+```typescript
+interface TemplateConfig {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  sb3Path: string;
+}
+```
 
-File: `src/templates/pet-sim.json`
+### 2. Creating .sb3 template files
+
+Templates can be created by either:
+1. **Building them in Scratch** — go to scratch.mit.edu, build the project, download as .sb3
+2. **Building them in Tinker** — once specs 03-04 are working, build the project and save via `vm.saveProjectSb3()`
+3. **Constructing the JSON** — manually write the `project.json` with the correct block opcodes and package as .sb3 (ZIP)
+
+Option 1 is easiest and guarantees the .sb3 is valid.
+
+### 3. Template: Pet Simulator
+
+File: `public/assets/templates/pet-sim.sb3`
 
 **What it does:** A cat sprite that responds to keyboard input.
 - Arrow keys move the cat around the stage
 - Pressing "s" makes the cat say "Meow!"
 - Pressing "h" hides the cat, pressing "s" shows it again
 
-**Blocks used:** events_key, motion_move, motion_set_x, motion_set_y, looks_say_for, looks_hide, looks_show
+**Scratch blocks used:** `event_whenkeypressed`, `motion_movesteps`, `motion_changeyby`, `looks_sayforsecs`, `looks_hide`, `looks_show`
 
 **Teaching focus:** Events and motion
 
-**Sprites:** Cat (default)
+### 4. Template: Quiz Game
 
-### 3. Template: Quiz Game
-
-File: `src/templates/quiz-game.json`
+File: `public/assets/templates/quiz-game.sb3`
 
 **What it does:** A sprite asks a question and responds based on input.
 - When green flag clicked: sprite says "What's 2 + 2?"
 - When "4" key is pressed: sprite says "Correct! 🎉"
-- When any other key: sprite says "Try again!"
+- When any other number key: sprite says "Try again!"
 
-**Blocks used:** events_flag, events_key, looks_say_for, control_wait, control_if, sensing_key_pressed
+**Scratch blocks used:** `event_whenflagclicked`, `event_whenkeypressed`, `looks_sayforsecs`, `control_wait`
 
-**Teaching focus:** Control flow and conditionals
+**Teaching focus:** Events and sequencing
 
-**Sprites:** A "quiz host" character (can be the cat with a different starting message)
+### 5. Template: Story with Choices
 
-### 4. Template: Story with Choices
-
-File: `src/templates/story-choices.json`
+File: `public/assets/templates/story-choices.sb3`
 
 **What it does:** A simple interactive story.
 - When green flag clicked: sprite says "You find a mysterious door..."
@@ -60,13 +76,11 @@ File: `src/templates/story-choices.json`
 - Press "o": sprite says "Inside you find a treasure! 💎" and grows bigger
 - Press "r": sprite says "You ran home safely!" and moves to the edge
 
-**Blocks used:** events_flag, events_key, looks_say_for, control_wait, looks_set_size, motion_goto_xy
+**Scratch blocks used:** `event_whenflagclicked`, `event_whenkeypressed`, `looks_sayforsecs`, `control_wait`, `looks_setsizeto`, `motion_gotoxy`
 
 **Teaching focus:** Sequencing and storytelling
 
-**Sprites:** A "character" sprite
-
-### 5. Welcome screen
+### 6. Welcome screen
 
 Create a welcome/landing state for when the app first loads:
 - Show before the main editor
@@ -76,34 +90,38 @@ Create a welcome/landing state for when the app first loads:
   - One-line description
   - A small preview image (static screenshot or icon)
   - "Start" button
-- "Blank project" option (starts with just the default cat sprite)
+- "Blank project" option (loads the default cat-only project)
 - Option to continue a saved project (if one exists in localStorage)
 
-### 6. Template preview
+### 7. Template preview
 
 When hovering over a template card:
 - Show a tooltip or expanded view with more detail
-- Optionally: auto-play a short demo of the template running
+- Optionally: show a static screenshot of the template running
 
-### 7. localStorage save/load
+### 8. Project persistence with .sb3
 
-Implement project persistence:
-- Auto-save the current project to localStorage every 30 seconds and on significant changes
+Implement project save/load using scratch-vm's built-in serialization:
+- **Save:** `vm.saveProjectSb3()` returns a Blob. Store it in localStorage (as base64) or IndexedDB (as ArrayBuffer).
+- **Load:** `vm.loadProject(arrayBuffer)` restores the full project state.
+- Auto-save the current project every 30 seconds and on significant changes
 - On app load: check for a saved project, offer to continue it
 - "Save" button in the toolbar (manual save with confirmation)
 - "New Project" in the toolbar → shows the template selector
+
+Note: `.sb3` files can be large (they include costume/sound assets as binary). For localStorage, consider using IndexedDB for the binary data and localStorage only for metadata (project name, last saved timestamp).
 
 ---
 
 ## Acceptance Criteria
 
 - [ ] Welcome screen shows on first load with template options
-- [ ] Each template loads correctly and runs when the green flag is clicked
+- [ ] Each template loads correctly via `vm.loadProject()` and runs when green flag is clicked
 - [ ] Pet Simulator: arrow keys move the cat, "s" makes it speak
 - [ ] Quiz Game: asks a question, responds correctly to "4", handles wrong answers
 - [ ] Story with Choices: plays through the story with branching based on key presses
 - [ ] "Blank project" starts with just the default cat sprite
-- [ ] Templates can be modified after loading (add/remove blocks)
-- [ ] Projects auto-save to localStorage
+- [ ] Templates can be modified after loading (add/remove blocks on the script canvas)
+- [ ] Projects auto-save (using vm.saveProjectSb3)
 - [ ] Saved projects can be resumed on next visit
 - [ ] Cosmo greets the kid appropriately when a template loads ("Nice pick! This is a pet simulator...")

@@ -9,6 +9,8 @@
 
 The visual shell of the app — the three-panel layout from the idea doc, plus the toolbar and Cosmo chat bar. Panels contain placeholder content for now. The goal is to nail the spatial layout before filling in real components.
 
+**Note:** The Sprite Stage panel will eventually mount a `<canvas>` element managed by scratch-render. For now, just render a blank 480x360 area. The actual scratch-render wiring happens in spec 04.
+
 ---
 
 ## Tasks
@@ -43,9 +45,9 @@ Create `src/components/ScriptCanvas/ScriptCanvas.tsx`:
 
 Create `src/components/SpriteStage/SpriteStage.tsx`:
 - Right panel, 480px fixed width
-- Contains a 480×360 canvas area (white background, thin border)
+- Contains a 480×360 placeholder area (white background, thin border) — this is where scratch-render's canvas will be mounted in spec 04
+- Use a `<canvas>` element with a ref so it's ready for scratch-render later
 - Below the canvas: sprite list area (placeholder "Sprite1" thumbnail)
-- The canvas should render but stay blank for now
 
 ### 5. Cosmo Chat Bar (shell)
 
@@ -83,3 +85,4 @@ Update `src/App.tsx`:
 - [ ] Cosmo welcome message displays on load
 - [ ] Resizing the window adjusts the canvas panel (flex-1 behavior)
 - [ ] Below 1024px, palette collapses behind a toggle
+- [ ] The stage panel has a `<canvas>` element ready for scratch-render
