@@ -2,287 +2,192 @@
 
 ## System Overview
 
-Tinker is a custom React UI layer on top of Scratch's open-source engine. The engine (scratch-vm + scratch-render) handles all block execution and sprite rendering. We build the UI, the AI integration, and the sharing system.
+Tinker is a multi-mode creation platform. The UI shell (toolbar, chat bar, welcome screen) is shared. The three middle panels change based on which mode the kid selected.
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│                    Tinker App (React)                        │
-│                                                              │
-│  ┌──────────┐  ┌──────────────┐  ┌────────────────────┐    │
-│  │  Block    │  │   Script     │  │   Sprite Stage     │    │
-│  │  Palette  │  │   Canvas     │  │  ┌──────────────┐  │    │
-│  │           │  │              │  │  │scratch-render │  │    │
-│  │ reads VM  │  │ writes VM    │  │  │   canvas      │  │    │
-│  │ block defs│  │ blocks via   │  │  └──────────────┘  │    │
-│  │           │  │ adapter      │  │                    │    │
-│  └──────────┘  └──────────────┘  └────────────────────┘    │
-│                                                              │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │              Cosmo AI Chat Bar                        │   │
-│  │  [text input] → AI Client → Parser → VM blocks       │   │
-│  └──────────────────────────────────────────────────────┘   │
-│                           │                                  │
-│         ┌─────────────────┼──────────────────┐              │
-│         │          src/scratch/ adapters       │              │
-│         │    setup.ts | blockAdapter.ts |      │              │
-│         │    spriteAdapter.ts | opcodes.ts     │              │
-│         └─────────────────┼──────────────────┘              │
-└───────────────────────────┼──────────────────────────────────┘
-                            │
-              ┌─────────────┼─────────────────┐
-              │       Scratch Engine           │
-              │                                │
-              │  scratch-vm (BSD-3)            │
-              │    Block execution, events,    │
-              │    timing, concurrency,        │
-              │    sprite state management     │
-              │              │                 │
-              │              ▼                 │
-              │  scratch-render (AGPL-3)       │
-              │    WebGL sprite rendering,     │
-              │    costumes, layering,         │
-              │    speech bubbles, effects     │
-              │              │                 │
-              │  scratch-storage               │
-              │    Asset loading (SVGs, PNGs)  │
-              └────────────────────────────────┘
-                            │
-                            ▼ (via proxy)
-                   ┌─────────────────┐
-                   │  Claude API      │
-                   │  (claude-sonnet) │
-                   └─────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  Toolbar (shared)                                                │
+│  [Run/Stop or Refresh]  [Project Name]  [Share]                  │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   MODE = 'scratch' (Game Mode)                                   │
+│   ┌──────────┐  ┌──────────────┐  ┌────────────────────┐       │
+│   │  Block    │  │   Script     │  │   Sprite Stage     │       │
+│   │  Palette  │  │   Canvas     │  │  (scratch-render)  │       │
+│   └──────────┘  └──────────────┘  └────────────────────┘       │
+│                                                                  │
+│   MODE = 'web' (Web Mode)                                        │
+│   ┌──────────┐  ┌──────────────┐  ┌────────────────────┐       │
+│   │  Element  │  │   Code       │  │   Live Preview     │       │
+│   │  Palette  │  │   Editor     │  │  (sandboxed iframe) │       │
+│   └──────────┘  └──────────────┘  └────────────────────┘       │
+│                                                                  │
+├──────────────────────────────────────────────────────────────────┤
+│  Cosmo Chat Bar (shared — mode-aware prompts)                    │
+│  [Cosmo avatar] [chat messages] [input field]                    │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Scratch VM Integration
+## Mode System
 
-### Initialization (`src/scratch/setup.ts`)
-
-On app startup:
-
-1. Create a `VirtualMachine` instance
-2. Create a `RenderWebGL` instance, attached to a `<canvas>` DOM element
-3. Create a `ScratchStorage` instance for loading sprite assets
-4. Wire them together:
-   ```
-   vm.attachRenderer(renderer)
-   vm.attachStorage(storage)
-   ```
-5. Start the VM tick loop: `vm.start()`
-6. Load a default project (empty project with one cat sprite)
-
-The VM instance is a singleton, created once and shared across the app via a React context or direct import.
-
-### VM Lifecycle
+The `mode` field lives in the UI store (`src/store/ui.ts`). It is set when the kid picks a template on the Welcome Screen and persists for the session.
 
 ```
-App starts
+Welcome Screen
     │
-    ▼
-setup.ts creates VM + Renderer + Storage
+    ├── "Build a Game" templates → mode = 'scratch'
+    │       └── loads sb3 JSON into scratch-vm via project store
     │
-    ▼
-vm.start()  ← begins the tick loop (requestAnimationFrame)
-    │
-    ▼
-vm.loadProject(defaultProject)  ← loads empty .sb3 with cat sprite
-    │
-    ▼
-VM emits 'targetsUpdate' → store updates → React re-renders
-    │
-    ▼
-User interacts (drag blocks, click green flag, type in Cosmo)
-    │
-    ▼
-Adapter functions translate UI actions → VM API calls
-    │
-    ▼
-VM executes blocks → updates sprite state → renderer draws
+    └── "Build a Website" templates → mode = 'web'
+            └── loads HTML string into webProject store
 ```
+
+`App.tsx` reads `mode` and conditionally renders the appropriate panels. The toolbar and chat bar adapt their behavior based on mode.
 
 ---
 
-## Adapter Layer (`src/scratch/`)
+## Game Mode (scratch-vm)
 
-The adapter layer bridges our React UI and the scratch-vm API. Components never call scratch-vm directly — they go through adapters and the Zustand store.
+### Engine
 
-### blockAdapter.ts
+- `scratch-vm` (BSD-3): block execution, events, timing, concurrency, sprite state
+- `scratch-render` (AGPL-3): WebGL sprite rendering, costumes, layering, effects
+- `scratch-storage` (BSD-3): asset loading from Scratch CDN
 
-Translates UI block operations into scratch-vm's block event format.
+### Adapter Layer (`src/scratch/`)
 
-**Key functions:**
-- `createBlock(targetId, opcode, inputs, position)` — Creates a new block on a target's workspace
-- `connectBlocks(blockId, parentId, inputName?)` — Snaps a block under another or into an input
-- `disconnectBlock(blockId)` — Detaches a block from its parent
-- `deleteBlock(blockId)` — Removes a block and its children
-- `changeBlockInput(blockId, inputName, value)` — Updates an input value
-- `changeBlockField(blockId, fieldName, value)` — Updates a field value (dropdowns)
-- `getBlocksForTarget(targetId)` — Returns all blocks for a sprite, structured for rendering
+Components never call scratch-vm directly. They go through adapters:
 
-scratch-vm uses Blockly-style event objects internally. The adapter constructs these events and dispatches them to `vm.blockListener()`.
+- **`setup.ts`** — creates VM, renderer, storage. Wires them together. Exports `initializeScratchVM(canvas)`.
+- **`blockAdapter.ts`** — creates, connects, disconnects, deletes blocks via `vm.blockListener()`.
+- **`spriteAdapter.ts`** — manages targets (sprites). Add, delete, select.
+- **`opcodes.ts`** — maps scratch-vm opcodes to UI-friendly metadata (label, color, category, shape).
 
-### spriteAdapter.ts
+### State (`src/store/project.ts`)
 
-Bridges sprite UI with scratch-vm's target system.
+Zustand store wrapping scratch-vm. Subscribes to VM events (`targetsUpdate`, `workspaceUpdate`) and exposes reactive state to React: `targets`, `blocks`, `isRunning`, `editingTargetId`.
 
-**Key functions:**
-- `getTargets()` — Returns all sprite targets (excluding stage), formatted for UI
-- `getActiveTarget()` — Returns the editing target
-- `setActiveTarget(targetId)` — Switches which sprite's blocks are shown
-- `addSprite(options)` — Creates a new sprite via VM
-- `deleteSprite(targetId)` — Removes a sprite
-- `getSpritePosition(targetId)` — Returns x, y, direction, size for display
-
-### opcodes.ts
-
-Maps scratch-vm opcodes to UI-friendly metadata for the block palette.
-
-```typescript
-interface OpcodeInfo {
-  opcode: string;          // e.g. "motion_movesteps"
-  category: string;        // e.g. "motion"
-  label: string;           // e.g. "move {STEPS} steps"
-  color: string;           // hex color for the category
-  shape: "stack" | "hat" | "cap" | "reporter" | "boolean";
-}
-```
-
-This mapping drives the block palette UI. Categories and colors follow Scratch conventions (see `docs/design-system.md`).
-
----
-
-## Component Architecture
-
-### 1. Block Palette (`src/components/BlockPalette/`)
-
-Displays categorized blocks that the user can drag onto the canvas.
-
-**Data source:** `src/scratch/opcodes.ts` provides the full list of available blocks grouped by category with labels and colors.
-
-**Interaction:** When a block is dragged from the palette, the drop handler calls `blockAdapter.createBlock()` to add it to the VM's workspace for the active target.
-
-### 2. Script Canvas (`src/components/ScriptCanvas/`)
-
-Renders and allows editing of blocks for the active sprite.
-
-**Data source:** Subscribes to VM `workspaceUpdate` events via the project store. Reads block data through `blockAdapter.getBlocksForTarget()`.
-
-**Interaction:** Drag-and-drop, snapping, input editing, and deletion all go through `blockAdapter` functions which dispatch events to `vm.blockListener()`.
-
-### 3. Sprite Stage (`src/components/SpriteStage/`)
-
-Hosts the scratch-render canvas.
-
-**Setup:** During initialization, `setup.ts` creates the renderer with a `<canvas>` element. The SpriteStage component provides this canvas element via a ref. The renderer draws automatically via the VM's tick loop.
-
-**Interaction:**
-- Green flag → `vm.greenFlag()`
-- Stop → `vm.stopAll()`
-- Key events → forwarded to `vm.postIOData('keyboard', ...)`
-- Mouse/click events → forwarded to `vm.postIOData('mouse', ...)`
-
-Below the canvas: sprite selector reads from `spriteAdapter.getTargets()`.
-
-### 4. Cosmo Chat Bar (`src/components/CosmoChat/`)
-
-The AI interaction layer.
-
-**Flow:**
-1. Kid types instruction → sent to Claude API via `src/ai/client.ts`
-2. Claude responds with sb3-format block JSON + explanation
-3. `src/ai/parser.ts` validates the response against known opcodes
-4. Preview shown in chat → kid clicks Accept
-5. On accept → `blockAdapter.createBlock()` / `blockAdapter.connectBlocks()` add blocks to VM
-6. Kid clicks green flag → blocks execute via scratch-vm
-
----
-
-## AI Integration Flow
+### AI Flow
 
 ```
-User types: "make the cat jump when I press space"
-                    │
-                    ▼
-            ┌─────────────┐
-            │  AI Client   │  Sends to Claude API via proxy
-            │  (client.ts) │  with system prompt + project context
-            └──────┬──────┘
-                    │
-                    ▼
-            ┌─────────────┐
-            │  AI Response │  Structured JSON using scratch-vm opcodes:
-            │  (raw)       │  event_whenflagclicked, motion_movesteps, etc.
-            └──────┬──────┘
-                    │
-                    ▼
-            ┌─────────────┐
-            │  Parser      │  Validates opcodes exist in scratch-vm
-            │  (parser.ts) │  Validates input/field names
-            └──────┬──────┘
-                    │
-                    ▼
-            ┌─────────────┐
-            │  Cosmo Chat  │  Shows explanation + block preview
-            │  (component) │  Kid clicks "Accept" or "Try again"
-            └──────┬──────┘
-                    │ (on accept)
-                    ▼
-            ┌─────────────┐
-            │  Block       │  Calls vm.blockListener() to create
-            │  Adapter     │  blocks in the VM workspace
-            └─────────────┘
+Kid types: "make the cat jump when I press space"
+    │
+    ▼
+ai/client.ts → POST /api/ai/v1/messages (Claude API via proxy)
+    │            with system prompt from ai/prompts.ts
+    │            + project context from ai/context.ts
+    ▼
+ai/parser.ts → validates opcodes against opcodeRegistry
+    │            extracts ProposedBlockSet
+    ▼
+CosmoChat → shows explanation + BlockPreview
+    │          kid clicks Accept
+    ▼
+ai/proposalToBlocks.ts → blockAdapter.createBlock() + connectBlocks()
+    │
+    ▼
+scratch-vm executes blocks on green flag
 ```
 
-### AI Prompt Strategy
+### Project Format
 
-The system prompt for Claude includes:
-1. Cosmo's personality (enthusiastic, concise, encouraging)
-2. The scratch-vm opcode vocabulary (100+ opcodes with their inputs/fields)
-3. The current project state (serialized from VM: sprites, existing scripts)
-4. Output format spec (sb3-compatible block JSON + explanation)
-
-The AI must generate blocks using valid scratch-vm opcodes. The parser validates every opcode and input name before accepting.
+Standard `.sb3` (Scratch 3.0 ZIP). Projects are compatible with scratch.mit.edu.
 
 ---
 
-## State Management
+## Web Mode (HTML/CSS)
 
-### scratch-vm is the source of truth
+### Engine
 
-The VM holds all project state: sprites, blocks, costumes, sounds, variables. Our Zustand stores are reactive wrappers — they subscribe to VM events and expose derived state to React components.
+No external engine. The kid's HTML code is rendered in a sandboxed `<iframe>` using the `srcdoc` attribute. Updates are instant — change the code, the preview refreshes.
 
-### `project` store (`src/store/project.ts`)
+### Components (`src/components/web/`)
 
-Wraps scratch-vm state for React:
-- Subscribes to `vm.on('targetsUpdate', ...)` → updates sprite list
-- Subscribes to `vm.on('workspaceUpdate', ...)` → updates block data
-- Exposes: `targets`, `editingTargetId`, `blocks`, `isRunning`
-- Actions delegate to adapter functions → adapter calls VM API
-- Save/load: `vm.saveProjectSb3()` / `vm.loadProject(buffer)`
+- **`CodeEditor.tsx`** — styled `<textarea>` with monospace font. Receives `code` from `webProject` store, dispatches `setCode` on change.
+- **`WebPreview.tsx`** — `<iframe sandbox="allow-scripts" srcdoc={code}>`. Re-renders when code changes (debounced).
+- **`ElementPalette.tsx`** — grid of clickable HTML snippets (headings, paragraphs, images, buttons, lists). Clicking inserts the snippet into the code.
 
-### `ui` store (`src/store/ui.ts`)
+### State (`src/store/webProject.ts`)
 
-UI-only state (not in the VM):
-- Selected block category in palette
-- Cosmo chat history
-- Modal/panel visibility
-- Dragging state
+Simple Zustand store:
+- `code: string` — the full HTML document (includes inline `<style>`)
+- `projectName: string`
+- `setCode(code)` — manual editing
+- `applyAICode(html)` — replace code from AI suggestion
+
+### AI Flow
+
+```
+Kid types: "make a website about dinosaurs with a big title"
+    │
+    ▼
+ai/client.ts → POST /api/ai/v1/messages (Claude API via proxy)
+    │            with system prompt from ai/webPrompts.ts
+    │            + current HTML from webProject store
+    ▼
+ai/webParser.ts → extracts HTML from markdown code block in response
+    │               returns { explanation, html }
+    ▼
+CosmoChat → shows explanation + HTML preview (mini iframe or code snippet)
+    │          kid clicks Accept
+    ▼
+webProject.applyAICode(html) → code updates → preview refreshes
+```
+
+### Project Format
+
+A single `.html` file containing the full document (HTML + inline CSS). No build step, no bundling. The file opens in any browser.
 
 ---
 
-## Project Format
+## Shared Components
 
-Projects use the standard Scratch `.sb3` format — a ZIP archive containing:
-- `project.json` — JSON with targets, blocks, costumes, sounds
-- Asset files — SVGs, PNGs, WAVs referenced by MD5 hash
+### Toolbar (`src/components/ui/Toolbar.tsx`)
 
-scratch-vm handles serialization/deserialization:
-- **Save:** `vm.saveProjectSb3()` → `ArrayBuffer` (the .sb3 ZIP)
-- **Load:** `vm.loadProject(arrayBuffer)` → populates VM state
+- Game Mode: green flag + stop buttons, project name, share
+- Web Mode: refresh button (or auto-refreshes), project name, share
 
-This means Tinker projects are fully compatible with Scratch. A kid can export from Tinker and open the file on scratch.mit.edu.
+### CosmoChat (`src/components/CosmoChat/CosmoChat.tsx`)
+
+Mode-aware chat bar:
+- Reads `mode` from UI store
+- Game Mode: uses `prompts.ts`, `parser.ts`, shows `BlockPreview`, accept calls `applyProposal`
+- Web Mode: uses `webPrompts.ts`, `webParser.ts`, shows HTML preview, accept calls `applyAICode`
+
+### WelcomeScreen (`src/components/ui/WelcomeScreen.tsx`)
+
+Shows on first load. Two sections:
+- "Build a Game" — game templates (blank, pet sim, quiz, story)
+- "Build a Website" — web templates (blank page, about me, fun facts, photo gallery)
+
+Selecting a template sets `mode` and loads the project.
+
+### ShareModal (`src/components/ui/ShareModal.tsx`)
+
+- Game Mode: .sb3 download + URL sharing
+- Web Mode: .html download + URL sharing
+
+---
+
+## State Architecture
+
+```
+┌─────────────────────────────────────────────┐
+│  UI Store (shared)                          │
+│  mode, chatMessages, activeModal,           │
+│  showWelcome, isCosmoThinking               │
+├─────────────────────┬───────────────────────┤
+│  Project Store      │  WebProject Store     │
+│  (Game Mode)        │  (Web Mode)           │
+│  vm, targets,       │  code, projectName    │
+│  blocks, isRunning  │                       │
+│  projectName        │                       │
+└─────────────────────┴───────────────────────┘
+```
+
+Only one mode-specific store is active at a time, determined by `ui.mode`.
 
 ---
 
@@ -293,4 +198,4 @@ This means Tinker projects are fully compatible with Scratch. A kid can export f
 - **scratch-storage:** BSD-3-Clause
 - **scratch-svg-renderer:** BSD-3-Clause
 
-For a family project this is fine. If open-sourced, AGPL-3.0 is appropriate for educational software.
+AGPL-3.0 is appropriate for educational open-source software.

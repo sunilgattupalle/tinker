@@ -1,14 +1,20 @@
 # Tinker — Project Notes
 
-*A Scratch-like AI coding app for kids (and curious adults)*
+*An AI-powered creation platform for kids (and curious adults)*
 
 ---
 
 ## The Idea
 
-Build a kid-friendly coding environment inspired by Scratch, with an AI layer that helps kids bring their ideas to life through natural language. The AI assembles blocks in response to what the kid types — no syntax errors, no intimidating terminal.
+Build a kid-friendly creation platform where kids bring ideas to life with AI help. Type what you want in plain English — the AI builds it.
 
-**The core insight:** Scratch's block metaphor is nearly perfect. The AI doesn't replace it — it *drives* it.
+**Two creation modes:**
+- **Game Mode** — Scratch-style blocks and sprites. "Make the cat jump when I press space." AI assembles blocks.
+- **Web Mode** — HTML/CSS websites with live preview. "Make a website about dinosaurs." AI writes the code.
+
+Same AI helper (Cosmo), same encouraging tone, same "it works!" moment — just different canvases.
+
+**The core insight:** Kids want to *make things*. Sometimes that's a game. Sometimes it's a website. The AI makes both accessible.
 
 ---
 
@@ -82,17 +88,21 @@ A small robot mascot (not a chatbot bubble) who lives in the corner of the scree
 
 ## App Layout
 
-Three-panel layout (like Scratch):
+Three-panel layout with mode-specific content:
 
+**Game Mode (Scratch-based):**
 ```
 [ Block Palette ] [ Script Canvas ] [ Live Sprite Stage ]
                   [    AI Chat Bar (bottom)             ]
 ```
 
-- **Block palette** — categorized blocks on the left
-- **Script canvas** — where blocks snap together in the middle
-- **Live stage** — sprite preview on the right, updates in real time
-- **AI bar** — natural language input at the bottom, Cosmo lives here
+**Web Mode (HTML/CSS):**
+```
+[ Element Palette ] [ Code Editor ] [ Live Preview (iframe) ]
+                    [    AI Chat Bar (bottom)               ]
+```
+
+The toolbar and Cosmo chat bar are shared across modes. The three middle panels change based on what the kid is building.
 
 ---
 
@@ -110,10 +120,13 @@ Three-panel layout (like Scratch):
 
 | Layer | Choice |
 |---|---|
-| Frontend | React + Vite |
-| Block execution | Sandboxed iframe or Pyodide (Python in browser) |
+| Frontend | React 18 + Vite (TypeScript, strict mode) |
+| Styling | Tailwind CSS |
+| Game Mode engine | scratch-vm + scratch-render (Scratch open source) |
+| Web Mode preview | Sandboxed iframe with `srcdoc` |
 | AI backend | Claude API (claude-sonnet) |
-| API proxy | Cloudflare Worker or Vercel serverless function |
+| State management | Zustand |
+| API proxy | Vite dev server proxy (local) / Cloudflare Worker (prod) |
 | Hosting | GitHub Pages (free, simple) |
 
 ---
@@ -176,11 +189,9 @@ The value of Tinker is the *experience*, not the code — so open sourcing isn't
 
 Kids should be able to show what they made. No accounts needed — just export, import, and links.
 
-- **Shareable URL** — project data compressed into a URL fragment. Copy, paste, done.
-- **File export** — download as a `.tinker` file. Works offline, works forever.
-- **File import** — drag a `.tinker` file onto the app or use File → Open.
-
-See `specs/07-sharing.md` for the full spec.
+- **Game Mode:** Export/import as `.sb3` files (compatible with Scratch). URL sharing with compression.
+- **Web Mode:** Export as `.html` files (open in any browser). URL sharing with compression.
+- **Drag and drop** — drag a file onto the app to import it.
 
 ---
 
@@ -192,15 +203,23 @@ The community layer (gallery, remixing, profiles) is the long-term vision. The S
 
 ---
 
-## Next Steps
+## What's Built (Game Mode — Specs 01-07)
 
-- [ ] Scaffold the React + Vite project
-- [ ] Build the three-panel UI (palette, canvas, stage)
-- [ ] Implement block system (palette, canvas, drag-and-drop, snapping)
-- [ ] Build sprite stage and block execution engine
-- [ ] Implement Cosmo AI character with Claude API
-- [ ] Design starter templates (pet simulator, quiz game, story with choices)
-- [ ] Add project sharing (export/import/shareable links)
+- [x] React + Vite + TypeScript scaffold with scratch-vm integration
+- [x] Three-panel layout (palette, canvas, stage) with responsive design
+- [x] Block system (palette, canvas, drag-and-drop, snapping) using scratch-vm
+- [x] Sprite stage with scratch-render, green flag / stop, keyboard/mouse forwarding
+- [x] Cosmo AI character with Claude API (prompts, parser, block proposals)
+- [x] Starter templates (pet simulator, quiz game, story with choices)
+- [x] Project sharing (export/import .sb3, shareable URLs with pako compression)
+
+## Next Steps (Multi-Mode — Specs 08-09)
+
+- [ ] Add mode system: "Build a Game" vs "Build a Website" on welcome screen
+- [ ] Build Web Mode: code editor, live preview iframe, element palette
+- [ ] Web Mode AI: HTML/CSS generation prompts, response parser, code application
+- [ ] Web templates: blank page, about me, fun facts, photo gallery
+- [ ] Web sharing: .html export, URL sharing
 - [ ] Test with the actual user (the 10-year-old)
 - [ ] Iterate based on one very honest critic
 
