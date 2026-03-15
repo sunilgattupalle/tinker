@@ -1,1 +1,1 @@
-export {};
+export { ScriptCanvas } from "./ScriptCanvas";

@@ -1,1 +1,1 @@
-export {};
+export { BlockPalette } from "./BlockPalette";

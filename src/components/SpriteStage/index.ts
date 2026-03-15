@@ -1,1 +1,1 @@
-export {};
+export { SpriteStage } from "./SpriteStage";

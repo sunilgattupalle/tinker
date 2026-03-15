@@ -1,1 +1,1 @@
-export {};
+export { CosmoChat } from "./CosmoChat";
