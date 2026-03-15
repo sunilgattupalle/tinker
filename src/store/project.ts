@@ -63,6 +63,7 @@ interface ProjectStoreState {
   addBlockToBody: (block: BlockInstance, scriptId: string, parentBlockId: string) => void;
 
   setProjectName: (name: string) => void;
+  loadProject: (project: Project) => void;
   resetProject: () => void;
 }
 
@@ -275,6 +276,8 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
 
   setProjectName: (name) =>
     set((state) => ({ project: { ...state.project, name } })),
+
+  loadProject: (project) => set({ project }),
 
   resetProject: () => set({ project: createDefaultProject() }),
 }));

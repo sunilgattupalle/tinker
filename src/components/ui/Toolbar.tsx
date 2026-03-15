@@ -1,11 +1,20 @@
 import { useProjectStore } from "@/store/project";
 import { useRuntimeStore } from "@/store/runtime";
 import { runGreenFlag, stopAll } from "@/blocks/interpreter";
+import { saveProject } from "@/utils";
 
-export function Toolbar() {
-  const projectName = useProjectStore((s) => s.project.name);
+interface ToolbarProps {
+  onNewProject?: () => void;
+}
+
+export function Toolbar({ onNewProject }: ToolbarProps) {
+  const project = useProjectStore((s) => s.project);
   const setProjectName = useProjectStore((s) => s.setProjectName);
   const isRunning = useRuntimeStore((s) => s.isRunning);
+
+  const handleSave = () => {
+    saveProject(project);
+  };
 
   return (
     <header className="flex h-toolbar-h shrink-0 items-center border-b border-panel-border bg-panel-bg px-4">
@@ -35,14 +44,30 @@ export function Toolbar() {
         </button>
       </div>
 
-      <div className="flex flex-1 justify-center">
+      <div className="flex flex-1 items-center justify-center gap-2">
         <input
           type="text"
-          value={projectName}
+          value={project.name}
           onChange={(e) => setProjectName(e.target.value)}
           aria-label="Project name"
           className="w-48 rounded-input border border-panel-border bg-transparent px-3 py-1 text-center font-ui text-sm font-medium text-text-primary outline-none focus:border-accent"
         />
+        <button
+          onClick={handleSave}
+          aria-label="Save project"
+          className="rounded-button border border-panel-border px-2.5 py-1 font-ui text-xs text-text-secondary transition-colors hover:border-accent hover:text-accent"
+        >
+          Save
+        </button>
+        {onNewProject && (
+          <button
+            onClick={onNewProject}
+            aria-label="New project"
+            className="rounded-button border border-panel-border px-2.5 py-1 font-ui text-xs text-text-secondary transition-colors hover:border-accent hover:text-accent"
+          >
+            New
+          </button>
+        )}
       </div>
 
       <div

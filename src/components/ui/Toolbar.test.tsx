@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Toolbar } from "./Toolbar";
 import { useProjectStore } from "@/store/project";
 
@@ -33,5 +33,15 @@ describe("Toolbar", () => {
   it("renders the Cosmo avatar placeholder", () => {
     render(<Toolbar />);
     expect(screen.getByLabelText("Cosmo avatar")).toBeInTheDocument();
+  });
+
+  it("renders save button", () => {
+    render(<Toolbar />);
+    expect(screen.getByLabelText("Save project")).toBeInTheDocument();
+  });
+
+  it("renders new button when callback provided", () => {
+    render(<Toolbar onNewProject={vi.fn()} />);
+    expect(screen.getByLabelText("New project")).toBeInTheDocument();
   });
 });
