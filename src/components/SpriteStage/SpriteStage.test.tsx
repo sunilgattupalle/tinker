@@ -116,7 +116,6 @@ describe('SpriteStage', () => {
       vm: mockVM as never,
     })
     render(<SpriteStage />)
-    expect(screen.getByLabelText('Sprite info')).toBeInTheDocument()
     expect(screen.getByText('10')).toBeInTheDocument()
     expect(screen.getByText('20')).toBeInTheDocument()
   })

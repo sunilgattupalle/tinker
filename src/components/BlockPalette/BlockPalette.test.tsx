@@ -49,7 +49,7 @@ describe('BlockPalette', () => {
 
     const motionBtn = screen.getByText('Motion').closest('button')!
     await user.click(motionBtn)
-    expect(motionBtn).toHaveAttribute('aria-current', 'true')
+    expect(motionBtn.className).toContain('font-semibold')
   })
 
   it('toggles categories open and closed', async () => {

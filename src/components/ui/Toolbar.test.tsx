@@ -2,25 +2,6 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Toolbar } from './Toolbar'
 
-vi.mock('@/scratch/setup', () => ({
-  initializeScratchVM: () => ({
-    runtime: { targets: [] },
-    start: vi.fn(),
-    on: vi.fn(),
-    off: vi.fn(),
-    editingTarget: null,
-    setEditingTarget: vi.fn(),
-    postIOData: vi.fn(),
-  }),
-  loadDefaultProject: vi.fn().mockResolvedValue(undefined),
-}))
-
-vi.mock('@/scratch/spriteAdapter', () => ({
-  setSpriteVM: vi.fn(),
-  addDefaultSprite: vi.fn().mockResolvedValue(undefined),
-  deleteSprite: vi.fn(),
-}))
-
 describe('Toolbar', () => {
   it('renders green flag and stop buttons', () => {
     render(<Toolbar />)
@@ -30,28 +11,30 @@ describe('Toolbar', () => {
 
   it('renders project name', () => {
     render(<Toolbar />)
-    expect(screen.getByLabelText('Project name')).toBeInTheDocument()
+    expect(screen.getByText('My Tinker Project')).toBeInTheDocument()
   })
 
   it('allows editing the project name', async () => {
     const user = userEvent.setup()
     render(<Toolbar />)
 
-    await user.click(screen.getByLabelText('Project name'))
+    await user.click(screen.getByLabelText('Edit project name'))
 
     const input = screen.getByLabelText('Project name')
-    expect(input.tagName).toBe('INPUT')
-
+    expect(input).toHaveFocus()
     await user.clear(input)
     await user.type(input, 'Cool Game')
     await user.keyboard('{Enter}')
+    expect(screen.getByText('Cool Game')).toBeInTheDocument()
+  })
 
-    const nameButton = screen.getByLabelText('Project name')
-    expect(nameButton.textContent).toBe('Cool Game')
+  it('renders share button', () => {
+    render(<Toolbar />)
+    expect(screen.getByLabelText('Share project')).toBeInTheDocument()
   })
 
   it('renders the Cosmo avatar', () => {
     render(<Toolbar />)
-    expect(screen.getByLabelText('Cosmo avatar')).toBeInTheDocument()
+    expect(screen.getByText('C')).toBeInTheDocument()
   })
 })

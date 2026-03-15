@@ -1,16 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 import { useProjectStore } from '@/store/project'
+import { useUIStore } from '@/store/ui'
 
-export interface ToolbarProps {
-  className?: string
-}
-
-export function Toolbar({ className = '' }: ToolbarProps) {
+export function Toolbar() {
   const projectName = useProjectStore((s) => s.projectName)
   const setProjectName = useProjectStore((s) => s.setProjectName)
   const isRunning = useProjectStore((s) => s.isRunning)
   const greenFlag = useProjectStore((s) => s.greenFlag)
   const stopAll = useProjectStore((s) => s.stopAll)
+  const openModal = useUIStore((s) => s.openModal)
 
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(projectName)
@@ -25,38 +23,51 @@ export function Toolbar({ className = '' }: ToolbarProps) {
 
   const handleNameSubmit = () => {
     const trimmed = editValue.trim()
-    if (trimmed) {
-      setProjectName(trimmed)
-    } else {
-      setEditValue(projectName)
-    }
+    if (trimmed) setProjectName(trimmed)
+    else setEditValue(projectName)
     setIsEditing(false)
   }
 
   return (
-    <header
-      className={`flex h-toolbar-h items-center border-b border-app-border bg-app-panel px-4 ${className}`}
-    >
+    <header className="flex h-toolbar-h items-center gap-3 border-b border-app-border bg-white px-4 shadow-sm">
+      {/* Logo */}
       <div className="flex items-center gap-2">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-app-primary to-indigo-500 text-sm font-bold text-white shadow-sm">
+          T
+        </div>
+        <span className="hidden font-nunito text-lg font-bold text-app-text sm:block">Tinker</span>
+      </div>
+
+      <div className="mx-2 h-6 w-px bg-app-border" />
+
+      {/* Run controls */}
+      <div className="flex items-center gap-1.5">
         <button
           onClick={greenFlag}
           aria-label="Green flag"
-          className="flex h-8 w-8 items-center justify-center rounded-button bg-app-success text-white transition-opacity hover:opacity-80"
+          className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all ${
+            isRunning
+              ? 'bg-app-success/20 text-app-success ring-2 ring-app-success/30'
+              : 'bg-app-success text-white shadow-sm hover:shadow-md hover:brightness-110'
+          }`}
         >
-          <span className="text-sm">▶</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
         </button>
         <button
           onClick={stopAll}
+          disabled={!isRunning}
           aria-label="Stop"
-          className="flex h-8 w-8 items-center justify-center rounded-button bg-app-stop text-white transition-opacity hover:opacity-80"
+          className="flex h-9 w-9 items-center justify-center rounded-lg bg-app-stop text-white shadow-sm transition-all hover:shadow-md hover:brightness-110 disabled:opacity-40 disabled:shadow-none"
         >
-          <span className="text-sm">■</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+          </svg>
         </button>
-        {isRunning && (
-          <span className="ml-1 text-xs font-medium text-app-success">Running</span>
-        )}
       </div>
 
+      {/* Project name */}
       <div className="flex flex-1 justify-center">
         {isEditing ? (
           <input
@@ -72,7 +83,7 @@ export function Toolbar({ className = '' }: ToolbarProps) {
                 setIsEditing(false)
               }
             }}
-            className="w-48 rounded-input border border-app-border bg-white px-2 py-1 text-center font-inter text-sm font-medium text-app-text outline-none focus:border-app-primary"
+            className="w-56 rounded-lg border border-app-primary/30 bg-white px-3 py-1.5 text-center font-inter text-sm font-medium text-app-text outline-none ring-2 ring-app-primary/20"
             aria-label="Project name"
           />
         ) : (
@@ -81,18 +92,31 @@ export function Toolbar({ className = '' }: ToolbarProps) {
               setEditValue(projectName)
               setIsEditing(true)
             }}
-            className="rounded-input px-3 py-1 font-inter text-sm font-medium text-app-text hover:bg-gray-100"
-            aria-label="Project name"
+            className="rounded-lg px-3 py-1.5 font-inter text-sm font-medium text-app-text transition-colors hover:bg-gray-100"
+            aria-label="Edit project name"
           >
             {projectName}
           </button>
         )}
       </div>
 
-      <div
-        className="flex h-8 w-8 items-center justify-center rounded-full bg-app-cosmo text-sm font-bold text-white"
-        aria-label="Cosmo avatar"
+      {/* Share + Cosmo avatar */}
+      <button
+        onClick={() => openModal('share')}
+        className="flex items-center gap-1.5 rounded-lg border border-app-border bg-white px-3 py-1.5 font-inter text-sm font-medium text-app-text shadow-sm transition-all hover:border-app-primary hover:text-app-primary hover:shadow-md"
+        aria-label="Share project"
       >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+        </svg>
+        <span className="hidden sm:inline">Share</span>
+      </button>
+
+      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-app-cosmo to-cyan-600 text-xs font-bold text-white shadow-sm">
         C
       </div>
     </header>
