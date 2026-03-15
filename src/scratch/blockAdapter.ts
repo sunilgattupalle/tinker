@@ -11,7 +11,9 @@ export interface BlockAdapter {
 }
 
 export const blockAdapter: BlockAdapter = {
-  createBlock: (_targetId, _options) => {
+  createBlock: (targetId, options) => {
+    void targetId
+    void options
     throw new Error('blockAdapter.createBlock is not implemented yet')
   },
 }

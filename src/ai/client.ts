@@ -27,6 +27,7 @@ export interface CosmoResponse {
   proposedBlocks: ProposedBlockSet
 }
 
-export async function askCosmo(_request: CosmoRequest): Promise<CosmoResponse> {
+export async function askCosmo(request: CosmoRequest): Promise<CosmoResponse> {
+  void request
   throw new Error('askCosmo is not implemented yet')
 }
