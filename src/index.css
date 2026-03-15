@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@theme {
+  /* Block category colors */
+  --color-block-motion: #4C97FF;
+  --color-block-looks: #9966FF;
+  --color-block-sound: #CF63CF;
+  --color-block-events: #FFBF00;
+  --color-block-control: #FFAB19;
+  --color-block-sensing: #5CB1D6;
+  --color-block-operators: #59C059;
+  --color-block-variables: #FF8C1A;
+
+  /* App chrome colors */
+  --color-app-bg: #F9F7F3;
+  --color-panel-bg: #FFFFFF;
+  --color-panel-border: #E2E0DC;
+  --color-accent: #4C6EF5;
+  --color-text-primary: #2D2D2D;
+  --color-text-secondary: #6B7280;
+  --color-success: #22C55E;
+  --color-stop: #EF4444;
+  --color-cosmo: #06B6D4;
+
+  /* Spacing tokens */
+  --spacing-block-h: 40px;
+  --spacing-block-gap: 4px;
+  --spacing-palette-w: 200px;
+  --spacing-stage-w: 480px;
+  --spacing-stage-h: 360px;
+  --spacing-toolbar-h: 48px;
+  --spacing-chatbar-h: 120px;
+
+  /* Border radius tokens */
+  --radius-block: 8px;
+  --radius-panel: 0px;
+  --radius-button: 6px;
+  --radius-input: 6px;
+  --radius-reporter: 999px;
+
+  /* Font families */
+  --font-display: "Nunito", sans-serif;
+  --font-ui: "Inter", sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  color: var(--color-text-primary);
+  background-color: var(--color-app-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
