@@ -189,7 +189,17 @@ export function App() {
           error instanceof Error
             ? error.message
             : "Failed to load this project.";
-        setImportError(message);
+        
+        if (message.includes("Unknown block")) {
+          setImportError(message);
+          addChatMessage({
+            role: "cosmo",
+            content:
+              "This project uses some blocks I don't recognize. I loaded what I could!",
+          });
+        } else {
+          setImportError(message);
+        }
       }
     }
   }, [importProject, loadProject, clearChat, addChatMessage]);

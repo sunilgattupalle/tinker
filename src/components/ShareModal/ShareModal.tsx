@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useProjectStore } from "@/store/project";
+import { useUIStore } from "@/store/ui";
 import { serializeProject } from "@/community/serializer";
 import { encodeProjectToURL } from "@/community/urlShare";
 import { exportProjectToFile } from "@/community/fileExport";
@@ -12,6 +13,7 @@ interface ShareModalProps {
 
 export function ShareModal({ isOpen, onClose }: ShareModalProps) {
   const project = useProjectStore((s) => s.project);
+  const addChatMessage = useUIStore((s) => s.addChatMessage);
   const [description, setDescription] = useState("");
   const [copied, setCopied] = useState(false);
 
@@ -43,6 +45,11 @@ export function ShareModal({ isOpen, onClose }: ShareModalProps) {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+      addChatMessage({
+        role: "cosmo",
+        content:
+          "Your project has a link now! Anyone with it can try your creation 🎉",
+      });
     }
   };
 
@@ -57,6 +64,11 @@ export function ShareModal({ isOpen, onClose }: ShareModalProps) {
       thumbnail: thumb,
     });
     exportProjectToFile(sharedProject);
+    addChatMessage({
+      role: "cosmo",
+      content:
+        "Your project is downloaded! Anyone can open this file and see what you made 🎉",
+    });
     onClose();
   };
 
