@@ -1,5 +1,10 @@
 import '@testing-library/jest-dom'
 
+Element.prototype.scrollIntoView = vi.fn()
+
+HTMLDialogElement.prototype.showModal = vi.fn()
+HTMLDialogElement.prototype.close = vi.fn()
+
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({

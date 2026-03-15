@@ -19,7 +19,7 @@ export interface ProjectStore {
   greenFlag: () => void
   stopAll: () => void
   saveProject: () => Promise<Blob>
-  loadProject: (data: ArrayBuffer) => Promise<void>
+  loadProject: (data: ArrayBuffer | string) => Promise<void>
   loadDefaultProject: () => Promise<void>
   setProjectName: (name: string) => void
   initializeVM: (vm: VirtualMachine) => void
@@ -104,13 +104,23 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   loadProject: async (data) => {
     const { vm } = get()
     if (!vm) return
-    await vm.loadProject(data)
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Load timed out')), 15000),
+    )
+    await Promise.race([vm.loadProject(data), timeout]).catch((err) => {
+      console.warn('Project load issue:', err)
+    })
   },
 
   loadDefaultProject: async () => {
     const { vm } = get()
     if (!vm) return
-    await loadDefaultProject(vm)
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Load timed out')), 10000),
+    )
+    await Promise.race([loadDefaultProject(vm), timeout]).catch((err) => {
+      console.warn('Default project load issue:', err)
+    })
   },
 
   setProjectName: (name) => set({ projectName: name }),
@@ -132,10 +142,6 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     setSpriteVM(vm)
     vm.start()
     get().initializeVM(vm)
-
-    loadDefaultProject(vm).catch(() => {
-      // default project load failed — VM will still work with empty project
-    })
   },
 
   initializeVM: (vmInstance) => {

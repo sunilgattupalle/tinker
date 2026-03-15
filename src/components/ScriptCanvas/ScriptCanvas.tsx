@@ -50,7 +50,6 @@ function CanvasBlock({
     changeBlockField(block.id, fieldName, value)
   }
 
-  // Find substack children
   const substackBlocks: UIBlock[] = []
   if (block.children?.SUBSTACK) {
     let childId: string | null = block.children.SUBSTACK
@@ -78,17 +77,13 @@ function CanvasBlock({
         {hasSubstack && (
           <div
             ref={setSubstackRef}
-            className={`min-h-[28px] rounded p-0.5 transition-colors ${
+            className={`min-h-[28px] rounded p-0.5 transition-all ${
               isSubstackOver ? 'bg-app-primary/20 ring-2 ring-app-primary/40' : ''
             }`}
           >
             {substackBlocks.length > 0 ? (
               substackBlocks.map((child) => (
-                <CanvasBlock
-                  key={child.id}
-                  block={child}
-                  allBlocks={allBlocks}
-                />
+                <CanvasBlock key={child.id} block={child} allBlocks={allBlocks} />
               ))
             ) : (
               <div className="flex h-7 items-center justify-center rounded border border-dashed border-gray-300 text-[10px] text-gray-400">
@@ -99,7 +94,6 @@ function CanvasBlock({
         )}
       </Block>
 
-      {/* Snap zone below */}
       {!isCap && !block.next && (
         <div
           ref={setSnapRef}
@@ -109,15 +103,11 @@ function CanvasBlock({
         />
       )}
 
-      {/* Render next block in chain */}
       {nextBlock && (
         <CanvasBlock block={nextBlock} allBlocks={allBlocks} />
       )}
 
-      {/* Delete drop zone hint for canvas blocks */}
-      {!block.next && editingTargetId && (
-        <div className="h-0" />
-      )}
+      {!block.next && editingTargetId && <div className="h-0" />}
     </div>
   )
 }
@@ -133,19 +123,14 @@ export function ScriptCanvas({ className = '' }: ScriptCanvasProps) {
     data: { type: 'canvas' },
   })
 
-  const handleContextMenu = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      const blockEl = (e.target as HTMLElement).closest('[data-canvas-block]')
-      if (blockEl) {
-        const blockId = blockEl.getAttribute('data-block-id')
-        if (blockId) {
-          setContextMenu({ x: e.clientX, y: e.clientY, blockId })
-        }
-      }
-    },
-    [],
-  )
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    const blockEl = (e.target as HTMLElement).closest('[data-canvas-block]')
+    if (blockEl) {
+      const blockId = blockEl.getAttribute('data-block-id')
+      if (blockId) setContextMenu({ x: e.clientX, y: e.clientY, blockId })
+    }
+  }, [])
 
   const handleDeleteBlock = useCallback(() => {
     if (!contextMenu || !editingTargetId) return
@@ -153,14 +138,9 @@ export function ScriptCanvas({ className = '' }: ScriptCanvasProps) {
     setContextMenu(null)
   }, [contextMenu, editingTargetId])
 
-  const handleClick = useCallback(() => {
-    setContextMenu(null)
-  }, [])
+  const handleClick = useCallback(() => setContextMenu(null), [])
 
-  const topLevelBlocks = blocks.filter(
-    (b) => b.topLevel && scriptRoots.includes(b.id),
-  )
-
+  const topLevelBlocks = blocks.filter((b) => b.topLevel && scriptRoots.includes(b.id))
   const isEmpty = topLevelBlocks.length === 0
 
   return (
@@ -170,24 +150,27 @@ export function ScriptCanvas({ className = '' }: ScriptCanvasProps) {
       aria-label="Script canvas"
       style={{
         backgroundColor: '#F9F7F3',
-        backgroundImage:
-          'radial-gradient(circle, #D4D2CE 1px, transparent 1px)',
+        backgroundImage: 'radial-gradient(circle, #D4D2CE 1px, transparent 1px)',
         backgroundSize: '20px 20px',
       }}
       onContextMenu={handleContextMenu}
       onClick={handleClick}
     >
       {isEmpty ? (
-        <div className="flex h-full items-center justify-center">
-          <p
-            className={`select-none rounded-lg px-6 py-4 text-center font-inter text-sm shadow-sm transition-colors ${
-              isOver
-                ? 'bg-app-primary/10 text-app-primary ring-2 ring-app-primary/30'
-                : 'bg-white/80 text-app-secondaryText'
-            }`}
-          >
-            Drag blocks here or ask Cosmo to help!
-          </p>
+        <div className="flex h-full flex-col items-center justify-center gap-3">
+          <div className={`rounded-2xl px-8 py-6 text-center transition-all ${
+            isOver
+              ? 'bg-app-primary/10 shadow-lg ring-2 ring-app-primary/30'
+              : 'bg-white/80 shadow-sm'
+          }`}>
+            <div className="mb-2 text-3xl">🧩</div>
+            <p className="font-nunito text-sm font-semibold text-app-text">
+              Drag blocks here
+            </p>
+            <p className="mt-1 font-inter text-xs text-app-secondaryText">
+              or ask Cosmo to help you build something!
+            </p>
+          </div>
         </div>
       ) : (
         <div className="relative min-h-full p-4">
@@ -195,10 +178,7 @@ export function ScriptCanvas({ className = '' }: ScriptCanvasProps) {
             <div
               key={rootBlock.id}
               className="absolute"
-              style={{
-                left: rootBlock.x ?? 50,
-                top: rootBlock.y ?? 50,
-              }}
+              style={{ left: rootBlock.x ?? 50, top: rootBlock.y ?? 50 }}
             >
               <CanvasBlock block={rootBlock} allBlocks={blocks} />
             </div>
@@ -206,16 +186,19 @@ export function ScriptCanvas({ className = '' }: ScriptCanvasProps) {
         </div>
       )}
 
-      {/* Context menu */}
       {contextMenu && (
         <div
-          className="fixed z-50 rounded-lg border border-app-border bg-white py-1 shadow-lg"
+          className="fixed z-50 overflow-hidden rounded-xl border border-app-border bg-white py-1 shadow-xl"
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
           <button
             onClick={handleDeleteBlock}
-            className="w-full px-4 py-1.5 text-left font-inter text-sm text-app-stop hover:bg-red-50"
+            className="flex w-full items-center gap-2 px-4 py-2 text-left font-inter text-sm text-app-stop transition-colors hover:bg-red-50"
           >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+            </svg>
             Delete block
           </button>
         </div>

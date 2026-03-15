@@ -32,7 +32,7 @@ const config: Config = {
         'stage-w': '480px',
         'stage-h': '360px',
         'toolbar-h': '48px',
-        'chatbar-h': '120px',
+        'chatbar-h': '180px',
       },
       borderRadius: {
         block: '8px',

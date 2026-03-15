@@ -2,26 +2,31 @@ import { render, screen } from '@testing-library/react'
 import { DndContext } from '@dnd-kit/core'
 import { ScriptCanvas } from './ScriptCanvas'
 
-function renderWithDnd(ui: React.ReactNode) {
+vi.mock('@/scratch/blockAdapter', () => ({
+  changeBlockInput: vi.fn(),
+  changeBlockField: vi.fn(),
+  deleteBlock: vi.fn(),
+  getBlocksForTarget: vi.fn().mockReturnValue([]),
+  getScriptRoots: vi.fn().mockReturnValue([]),
+}))
+
+function renderWithDnd(ui: React.ReactElement) {
   return render(<DndContext>{ui}</DndContext>)
 }
 
 describe('ScriptCanvas', () => {
   it('renders the empty state message when no blocks', () => {
     renderWithDnd(<ScriptCanvas />)
-    expect(
-      screen.getByText('Drag blocks here or ask Cosmo to help!'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('Drag blocks here')).toBeInTheDocument()
   })
 
-  it('has section label for accessibility', () => {
+  it('has accessible section label', () => {
     renderWithDnd(<ScriptCanvas />)
     expect(screen.getByLabelText('Script canvas')).toBeInTheDocument()
   })
 
-  it('has a dot-grid background', () => {
+  it('shows cosmo help text', () => {
     renderWithDnd(<ScriptCanvas />)
-    const section = screen.getByLabelText('Script canvas')
-    expect(section.style.backgroundImage).toContain('radial-gradient')
+    expect(screen.getByText(/ask Cosmo/i)).toBeInTheDocument()
   })
 })

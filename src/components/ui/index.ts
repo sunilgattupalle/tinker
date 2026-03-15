@@ -1,2 +1,5 @@
 export { Toolbar } from './Toolbar'
 export { Block } from './Block'
+export { ShareModal } from './ShareModal'
+export { WelcomeScreen } from './WelcomeScreen'
+export { ConfirmModal } from './ConfirmModal'
