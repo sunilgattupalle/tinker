@@ -20,7 +20,7 @@ export interface ProjectStore {
   initializeVM: (vm: VirtualMachine) => void
 }
 
-export const useProjectStore = create<ProjectStore>(() => ({
+export const useProjectStore = create<ProjectStore>((set) => ({
   targets: [],
   editingTargetId: null,
   blocks: [],
@@ -34,6 +34,6 @@ export const useProjectStore = create<ProjectStore>(() => ({
   saveProject: async () => new Blob(),
   loadProject: async () => undefined,
   loadDefaultProject: async () => undefined,
-  setProjectName: () => undefined,
+  setProjectName: (name) => set({ projectName: name }),
   initializeVM: () => undefined,
 }))

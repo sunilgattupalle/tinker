@@ -15,6 +15,8 @@ export interface UIStore {
   closeModal: () => void
   showWelcome: boolean
   dismissWelcome: () => void
+  isPaletteOpen: boolean
+  togglePalette: () => void
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -48,4 +50,6 @@ export const useUIStore = create<UIStore>((set) => ({
   closeModal: () => set({ activeModal: null }),
   showWelcome: true,
   dismissWelcome: () => set({ showWelcome: false }),
+  isPaletteOpen: true,
+  togglePalette: () => set((state) => ({ isPaletteOpen: !state.isPaletteOpen })),
 }))
