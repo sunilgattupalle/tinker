@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   encodeProjectToURL,
   decodeProjectFromURL,
@@ -103,21 +103,6 @@ describe("decodeProjectFromURL", () => {
 });
 
 describe("stripProjectFromURL", () => {
-  let originalLocation: Location;
-
-  beforeEach(() => {
-    originalLocation = window.location;
-    delete (window as any).location;
-    window.location = {
-      ...originalLocation,
-      hash: "#p=test-data",
-    } as Location;
-  });
-
-  afterEach(() => {
-    window.location = originalLocation;
-  });
-
   it("should strip the project fragment from URL", () => {
     stripProjectFromURL();
   });

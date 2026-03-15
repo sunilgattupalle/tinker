@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useProjectStore } from "@/store/project";
 import { serializeProject } from "@/community/serializer";
 import { encodeProjectToURL } from "@/community/urlShare";
@@ -13,35 +13,29 @@ interface ShareModalProps {
 export function ShareModal({ isOpen, onClose }: ShareModalProps) {
   const project = useProjectStore((s) => s.project);
   const [description, setDescription] = useState("");
-  const [shareUrl, setShareUrl] = useState<string | null>(null);
-  const [isTooLarge, setIsTooLarge] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [thumbnail, setThumbnail] = useState<string>("");
 
-  useEffect(() => {
-    if (isOpen) {
-      const canvas = document.querySelector(
-        "#sprite-stage-canvas"
-      ) as HTMLCanvasElement;
-      if (canvas) {
-        const thumb = generateThumbnail(canvas);
-        setThumbnail(thumb);
-      }
+  const thumbnail = useMemo(() => {
+    if (!isOpen) return "";
+    const canvas = document.querySelector(
+      "#sprite-stage-canvas"
+    ) as HTMLCanvasElement;
+    return canvas ? generateThumbnail(canvas) : "";
+  }, [isOpen]);
 
-      const sharedProject = serializeProject(project, {
-        description,
-        thumbnail,
-      });
-      const url = encodeProjectToURL(sharedProject);
+  const { shareUrl, isTooLarge } = useMemo(() => {
+    if (!isOpen) return { shareUrl: null, isTooLarge: false };
 
-      if (url) {
-        setShareUrl(url);
-        setIsTooLarge(false);
-      } else {
-        setShareUrl(null);
-        setIsTooLarge(true);
-      }
-    }
+    const sharedProject = serializeProject(project, {
+      description,
+      thumbnail,
+    });
+    const url = encodeProjectToURL(sharedProject);
+
+    return {
+      shareUrl: url,
+      isTooLarge: url === null,
+    };
   }, [isOpen, project, description, thumbnail]);
 
   const handleCopyLink = async () => {

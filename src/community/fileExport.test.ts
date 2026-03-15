@@ -18,16 +18,16 @@ describe("exportProjectToFile", () => {
       click: vi.fn(),
       href: "",
       download: "",
-    };
+    } as unknown as HTMLAnchorElement;
     const createElementSpy = vi
       .spyOn(document, "createElement")
-      .mockReturnValue(mockLink as any);
+      .mockReturnValue(mockLink);
     const appendChildSpy = vi
       .spyOn(document.body, "appendChild")
-      .mockImplementation(() => mockLink as any);
+      .mockImplementation(() => mockLink);
     const removeChildSpy = vi
       .spyOn(document.body, "removeChild")
-      .mockImplementation(() => mockLink as any);
+      .mockImplementation(() => mockLink);
 
     exportProjectToFile(shared);
 
@@ -53,14 +53,10 @@ describe("exportProjectToFile", () => {
       click: vi.fn(),
       href: "",
       download: "",
-    };
-    vi.spyOn(document, "createElement").mockReturnValue(mockLink as any);
-    vi.spyOn(document.body, "appendChild").mockImplementation(
-      () => mockLink as any
-    );
-    vi.spyOn(document.body, "removeChild").mockImplementation(
-      () => mockLink as any
-    );
+    } as unknown as HTMLAnchorElement;
+    vi.spyOn(document, "createElement").mockReturnValue(mockLink);
+    vi.spyOn(document.body, "appendChild").mockImplementation(() => mockLink);
+    vi.spyOn(document.body, "removeChild").mockImplementation(() => mockLink);
 
     exportProjectToFile(shared);
 

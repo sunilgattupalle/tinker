@@ -70,21 +70,24 @@ export function App() {
   const clearChat = useUIStore((s) => s.clearChat);
 
   useEffect(() => {
-    const urlProject = getProjectFromCurrentURL();
-    if (urlProject) {
-      try {
-        setImportProject(urlProject);
-        setShowImportModal(true);
-        setImportError("");
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Hmm, this link doesn't seem to work. The project might be corrupted.";
-        setImportError(message);
-        setShowImportModal(true);
+    const checkURLImport = () => {
+      const urlProject = getProjectFromCurrentURL();
+      if (urlProject) {
+        try {
+          setImportProject(urlProject);
+          setShowImportModal(true);
+          setImportError("");
+        } catch (error) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Hmm, this link doesn't seem to work. The project might be corrupted.";
+          setImportError(message);
+          setShowImportModal(true);
+        }
       }
-    }
+    };
+    checkURLImport();
   }, []);
 
   useEffect(() => {

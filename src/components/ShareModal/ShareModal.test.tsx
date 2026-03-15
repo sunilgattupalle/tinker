@@ -7,16 +7,20 @@ vi.mock("@/store/project", () => ({
   useProjectStore: vi.fn(),
 }));
 
+import type { Project } from "@/types";
+
 describe("ShareModal", () => {
   it("should not render when closed", () => {
-    vi.mocked(useProjectStore).mockReturnValue({
-      project: {
-        name: "Test",
-        sprites: [],
-        stage: { width: 480, height: 360, backdrop: "#FFFFFF" },
-        activeSpriteId: "",
-      },
-    } as any);
+    const mockProject: Project = {
+      name: "Test",
+      sprites: [],
+      stage: { width: 480, height: 360, backdrop: "#FFFFFF" },
+      activeSpriteId: "",
+    };
+    vi.mocked(useProjectStore).mockImplementation(
+      ((selector: (state: { project: Project }) => Project) =>
+        selector({ project: mockProject })) as typeof useProjectStore
+    );
 
     const { container } = render(
       <ShareModal isOpen={false} onClose={vi.fn()} />
@@ -25,7 +29,7 @@ describe("ShareModal", () => {
   });
 
   it("should render when open", () => {
-    const mockUseProjectStore = vi.fn(() => ({
+    const mockProject: Project = {
       name: "Test Project",
       sprites: [
         {
@@ -44,15 +48,18 @@ describe("ShareModal", () => {
       ],
       stage: { width: 480, height: 360, backdrop: "#FFFFFF" },
       activeSpriteId: "s1",
-    }));
-    vi.mocked(useProjectStore).mockImplementation(mockUseProjectStore as any);
+    };
+    vi.mocked(useProjectStore).mockImplementation(
+      ((selector: (state: { project: Project }) => Project) =>
+        selector({ project: mockProject })) as typeof useProjectStore
+    );
 
     render(<ShareModal isOpen={true} onClose={vi.fn()} />);
     expect(screen.getByText('Share "Test Project"')).toBeDefined();
   });
 
   it("should show close button", () => {
-    const mockUseProjectStore = vi.fn(() => ({
+    const mockProject: Project = {
       name: "Test",
       sprites: [
         {
@@ -71,8 +78,11 @@ describe("ShareModal", () => {
       ],
       stage: { width: 480, height: 360, backdrop: "#FFFFFF" },
       activeSpriteId: "s1",
-    }));
-    vi.mocked(useProjectStore).mockImplementation(mockUseProjectStore as any);
+    };
+    vi.mocked(useProjectStore).mockImplementation(
+      ((selector: (state: { project: Project }) => Project) =>
+        selector({ project: mockProject })) as typeof useProjectStore
+    );
 
     render(<ShareModal isOpen={true} onClose={vi.fn()} />);
     expect(screen.getByText("Close")).toBeDefined();
