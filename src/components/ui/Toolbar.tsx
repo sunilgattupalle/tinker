@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useProjectStore } from "@/store/project";
 import { useRuntimeStore } from "@/store/runtime";
 import { runGreenFlag, stopAll } from "@/blocks/interpreter";
 import { saveProject } from "@/utils";
+import { ShareModal } from "@/components/ShareModal";
 
 interface ToolbarProps {
   onNewProject?: () => void;
@@ -11,6 +13,7 @@ export function Toolbar({ onNewProject }: ToolbarProps) {
   const project = useProjectStore((s) => s.project);
   const setProjectName = useProjectStore((s) => s.setProjectName);
   const isRunning = useRuntimeStore((s) => s.isRunning);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const handleSave = () => {
     saveProject(project);
@@ -59,6 +62,13 @@ export function Toolbar({ onNewProject }: ToolbarProps) {
         >
           Save
         </button>
+        <button
+          onClick={() => setIsShareModalOpen(true)}
+          aria-label="Share project"
+          className="rounded-button border border-panel-border px-2.5 py-1 font-ui text-xs text-text-secondary transition-colors hover:border-accent hover:text-accent"
+        >
+          Share
+        </button>
         {onNewProject && (
           <button
             onClick={onNewProject}
@@ -76,6 +86,11 @@ export function Toolbar({ onNewProject }: ToolbarProps) {
       >
         C
       </div>
+
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+      />
     </header>
   );
 }

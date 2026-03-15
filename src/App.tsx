@@ -14,6 +14,8 @@ import { ScriptCanvas } from "./components/ScriptCanvas";
 import { SpriteStage } from "./components/SpriteStage";
 import { CosmoChat } from "./components/CosmoChat";
 import { Welcome } from "./components/Welcome";
+import { ImportModal } from "./components/ImportModal";
+import { FileDropZone } from "./components/FileDropZone";
 import { Block } from "./components/Block";
 import { getBlockDefinition } from "./blocks/registry";
 import { runKeyPressScripts } from "./blocks/interpreter";
@@ -23,7 +25,10 @@ import { useRuntimeStore } from "./store/runtime";
 import { useUIStore } from "./store/ui";
 import { loadTemplate, getTemplateInfo } from "./templates";
 import { saveProject, loadSavedProject } from "./utils";
-import type { BlockDefinition, BlockInstance } from "./types";
+import { getProjectFromCurrentURL, stripProjectFromURL } from "./community/urlShare";
+import { importProjectFromFile } from "./community/fileImport";
+import { deserializeProject } from "./community/serializer";
+import type { BlockDefinition, BlockInstance, SharedProject } from "./types";
 
 const BREAKPOINT = 1024;
 const AUTOSAVE_INTERVAL = 30_000;
@@ -52,6 +57,9 @@ export function App() {
     () => window.innerWidth < BREAKPOINT,
   );
   const [draggedDef, setDraggedDef] = useState<BlockDefinition | null>(null);
+  const [importProject, setImportProject] = useState<SharedProject | null>(null);
+  const [importError, setImportError] = useState<string>("");
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const addScript = useProjectStore((s) => s.addScript);
   const addBlock = useProjectStore((s) => s.addBlock);
@@ -60,6 +68,24 @@ export function App() {
   const resetProject = useProjectStore((s) => s.resetProject);
   const addChatMessage = useUIStore((s) => s.addChatMessage);
   const clearChat = useUIStore((s) => s.clearChat);
+
+  useEffect(() => {
+    const urlProject = getProjectFromCurrentURL();
+    if (urlProject) {
+      try {
+        setImportProject(urlProject);
+        setShowImportModal(true);
+        setImportError("");
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Hmm, this link doesn't seem to work. The project might be corrupted.";
+        setImportError(message);
+        setShowImportModal(true);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     function handleResize() {
@@ -138,6 +164,68 @@ export function App() {
     setShowWelcome(true);
   }, []);
 
+  const handleImportConfirm = useCallback(() => {
+    if (importProject) {
+      try {
+        const project = deserializeProject(importProject);
+        loadProject(project);
+        stripProjectFromURL();
+        setShowImportModal(false);
+        setShowWelcome(false);
+
+        let greeting = `Cool, you loaded "${importProject.name}"!`;
+        if (importProject.description) {
+          greeting += ` ${importProject.description}`;
+        }
+        greeting += " Want me to explain how it works?";
+
+        clearChat();
+        addChatMessage({ role: "cosmo", content: greeting });
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to load this project.";
+        setImportError(message);
+      }
+    }
+  }, [importProject, loadProject, clearChat, addChatMessage]);
+
+  const handleImportCancel = useCallback(() => {
+    setShowImportModal(false);
+    setImportProject(null);
+    setImportError("");
+    stripProjectFromURL();
+  }, []);
+
+  const handleFileDrop = useCallback(
+    async (file: File) => {
+      try {
+        const project = await importProjectFromFile(file);
+        setImportProject(project);
+        setImportError("");
+        setShowImportModal(true);
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "This doesn't look like a Tinker project file.";
+        setImportError(message);
+        setImportProject(null);
+        setShowImportModal(true);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("dragover", handleDragOver);
+    return () => window.removeEventListener("dragover", handleDragOver);
+  }, []);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
@@ -182,11 +270,21 @@ export function App() {
 
   if (showWelcome) {
     return (
-      <Welcome
-        onSelectTemplate={handleSelectTemplate}
-        onBlankProject={handleBlankProject}
-        onContinue={handleContinueSaved}
-      />
+      <>
+        <Welcome
+          onSelectTemplate={handleSelectTemplate}
+          onBlankProject={handleBlankProject}
+          onContinue={handleContinueSaved}
+        />
+        <FileDropZone onFileDrop={handleFileDrop} />
+        <ImportModal
+          isOpen={showImportModal}
+          project={importProject}
+          onConfirm={handleImportConfirm}
+          onCancel={handleImportCancel}
+          errorMessage={importError}
+        />
+      </>
     );
   }
 
@@ -230,6 +328,15 @@ export function App() {
 
         <CosmoChat />
       </div>
+
+      <FileDropZone onFileDrop={handleFileDrop} />
+      <ImportModal
+        isOpen={showImportModal}
+        project={importProject}
+        onConfirm={handleImportConfirm}
+        onCancel={handleImportCancel}
+        errorMessage={importError}
+      />
 
       <DragOverlay dropAnimation={null}>
         {draggedDef && (

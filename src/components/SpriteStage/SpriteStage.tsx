@@ -85,6 +85,7 @@ export function SpriteStage() {
       <div className="flex flex-1 items-start justify-center p-2">
         <canvas
           ref={canvasRef}
+          id="sprite-stage-canvas"
           width={480}
           height={360}
           aria-label="Sprite stage"

@@ -118,3 +118,13 @@ export interface InterpreterContext {
   stage: StageConfig;
   stopRequested: boolean;
 }
+
+export interface SharedProject {
+  version: 1;
+  name: string;
+  author?: string;
+  description?: string;
+  createdAt: string;
+  project: Project;
+  thumbnail?: string;
+}
