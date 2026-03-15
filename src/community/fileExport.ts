@@ -27,5 +27,6 @@ function sanitizeFilename(name: string): string {
     .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+$/, "")
     .substring(0, 50);
 }

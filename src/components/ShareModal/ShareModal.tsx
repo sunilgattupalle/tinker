@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useProjectStore } from "@/store/project";
-import { useRuntimeStore } from "@/store/runtime";
 import { serializeProject } from "@/community/serializer";
 import { encodeProjectToURL } from "@/community/urlShare";
 import { exportProjectToFile } from "@/community/fileExport";
