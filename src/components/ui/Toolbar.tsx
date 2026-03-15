@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useProjectStore } from "@/store/project";
 
 export function Toolbar() {
-  const [projectName, setProjectName] = useState("My Project");
+  const projectName = useProjectStore((s) => s.project.name);
+  const setProjectName = useProjectStore((s) => s.setProjectName);
 
   return (
     <header className="flex h-toolbar-h shrink-0 items-center border-b border-panel-border bg-panel-bg px-4">
