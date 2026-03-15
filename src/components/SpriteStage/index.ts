@@ -1,0 +1,1 @@
+export { SpriteStage } from "./SpriteStage";
