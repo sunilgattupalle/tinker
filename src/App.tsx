@@ -15,8 +15,10 @@ import { SpriteStage } from "./components/SpriteStage";
 import { CosmoChat } from "./components/CosmoChat";
 import { Block } from "./components/Block";
 import { getBlockDefinition } from "./blocks/registry";
+import { runKeyPressScripts } from "./blocks/interpreter";
 import { C_SHAPED_BLOCKS } from "./blocks/definitions";
 import { useProjectStore, generateId } from "./store/project";
+import { useRuntimeStore } from "./store/runtime";
 import type { BlockDefinition, BlockInstance } from "./types";
 
 const BREAKPOINT = 1024;
@@ -57,6 +59,22 @@ export function App() {
     }
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      useRuntimeStore.getState().setKeyPressed(e.key, true);
+      runKeyPressScripts(e.key);
+    }
+    function handleKeyUp(e: KeyboardEvent) {
+      useRuntimeStore.getState().setKeyPressed(e.key, false);
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
   }, []);
 
   const sensors = useSensors(

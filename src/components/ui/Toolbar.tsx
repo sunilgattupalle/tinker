@@ -1,21 +1,35 @@
 import { useProjectStore } from "@/store/project";
+import { useRuntimeStore } from "@/store/runtime";
+import { runGreenFlag, stopAll } from "@/blocks/interpreter";
 
 export function Toolbar() {
   const projectName = useProjectStore((s) => s.project.name);
   const setProjectName = useProjectStore((s) => s.setProjectName);
+  const isRunning = useRuntimeStore((s) => s.isRunning);
 
   return (
     <header className="flex h-toolbar-h shrink-0 items-center border-b border-panel-border bg-panel-bg px-4">
       <div className="flex items-center gap-2">
         <button
           aria-label="Run project"
-          className="flex h-8 w-8 items-center justify-center rounded-button bg-success text-white transition-opacity hover:opacity-80"
+          onClick={runGreenFlag}
+          className={`flex h-8 w-8 items-center justify-center rounded-button text-white transition-all ${
+            isRunning
+              ? "bg-success/60"
+              : "bg-success hover:opacity-80 hover:shadow-md"
+          }`}
         >
           <span className="text-sm">▶</span>
         </button>
         <button
           aria-label="Stop project"
-          className="flex h-8 w-8 items-center justify-center rounded-button bg-stop text-white transition-opacity hover:opacity-80"
+          onClick={stopAll}
+          disabled={!isRunning}
+          className={`flex h-8 w-8 items-center justify-center rounded-button text-white transition-all ${
+            isRunning
+              ? "bg-stop hover:opacity-80"
+              : "bg-stop/40 cursor-not-allowed"
+          }`}
         >
           <span className="text-sm">■</span>
         </button>

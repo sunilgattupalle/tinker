@@ -1,9 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { Toolbar } from "./Toolbar";
+import { useProjectStore } from "@/store/project";
 
 describe("Toolbar", () => {
+  beforeEach(() => {
+    useProjectStore.getState().resetProject();
+  });
+
   it("renders run and stop buttons", () => {
     render(<Toolbar />);
     expect(screen.getByLabelText("Run project")).toBeInTheDocument();

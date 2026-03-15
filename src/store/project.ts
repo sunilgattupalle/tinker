@@ -15,7 +15,16 @@ function createDefaultSprite(): Sprite {
     direction: 90,
     size: 100,
     visible: true,
-    costumes: [],
+    costumes: [
+      {
+        name: "cat",
+        url: "/tinker/assets/sprites/cat.svg",
+        width: 48,
+        height: 48,
+        centerX: 24,
+        centerY: 24,
+      },
+    ],
     currentCostumeIndex: 0,
     scripts: [],
     rotationStyle: "all_around",
@@ -36,6 +45,8 @@ interface ProjectStoreState {
   project: Project;
 
   getActiveSprite: () => Sprite | undefined;
+  getSpriteById: (id: string) => Sprite | undefined;
+  updateSprite: (id: string, updater: (sprite: Sprite) => Sprite) => void;
 
   addSprite: (sprite: Sprite) => void;
   removeSprite: (id: string) => void;
@@ -71,6 +82,21 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     const { project } = get();
     return project.sprites.find((s) => s.id === project.activeSpriteId);
   },
+
+  getSpriteById: (id) => {
+    const { project } = get();
+    return project.sprites.find((s) => s.id === id);
+  },
+
+  updateSprite: (id, updater) =>
+    set((state) => ({
+      project: {
+        ...state.project,
+        sprites: state.project.sprites.map((s) =>
+          s.id === id ? updater(s) : s,
+        ),
+      },
+    })),
 
   addSprite: (sprite) =>
     set((state) => ({
