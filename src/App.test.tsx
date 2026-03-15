@@ -5,6 +5,10 @@ vi.mock('@/scratch/setup', () => ({
   initializeScratchVM: () => ({
     runtime: { targets: [] },
     start: vi.fn(),
+    on: vi.fn(),
+    off: vi.fn(),
+    editingTarget: null,
+    setEditingTarget: vi.fn(),
   }),
 }))
 
