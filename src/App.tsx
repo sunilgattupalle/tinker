@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DndContext, DragOverlay, pointerWithin } from '@dnd-kit/core'
 import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core'
-import { initializeScratchVM } from '@/scratch/setup'
 import { Toolbar } from '@/components/ui'
 import { BlockPalette } from '@/components/BlockPalette'
 import { ScriptCanvas } from '@/components/ScriptCanvas'
@@ -39,18 +38,11 @@ export function App() {
   const isPaletteOpen = useUIStore((s) => s.isPaletteOpen)
   const togglePalette = useUIStore((s) => s.togglePalette)
   const isNarrow = useIsNarrow()
-  const initializeVM = useProjectStore((s) => s.initializeVM)
   const editingTargetId = useProjectStore((s) => s.editingTargetId)
 
   const showPalette = isNarrow ? isPaletteOpen : true
 
   const [draggedOpcode, setDraggedOpcode] = useState<string | null>(null)
-
-  useEffect(() => {
-    const vm = initializeScratchVM()
-    vm.start()
-    initializeVM(vm)
-  }, [initializeVM])
 
   const handleDragStart = (event: DragStartEvent) => {
     const data = event.active.data.current as DragData | undefined

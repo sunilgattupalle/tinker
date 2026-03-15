@@ -23,12 +23,19 @@ declare module 'scratch-vm' {
     attachRenderer(renderer: unknown): void
     attachStorage(storage: unknown): void
     attachAudioEngine(audioEngine: unknown): void
+
+    addSprite(input: string | ArrayBuffer): Promise<void>
+    deleteSprite(targetId: string): void
+    duplicateSprite(targetId: string): Promise<void>
+    renameSprite(targetId: string, newName: string): void
   }
 
   interface Runtime {
     targets: Target[]
     getBlocksJSON(): object[]
     on(event: string, callback: (...args: unknown[]) => void): void
+    attachRenderer(renderer: unknown): void
+    attachStorage(storage: unknown): void
   }
 
   interface Target {
@@ -97,6 +104,7 @@ declare module 'scratch-storage' {
   class ScratchStorage {
     constructor()
     addWebStore(types: unknown[], getAsset: unknown): void
+    AssetType: Record<string, unknown>
   }
   export default ScratchStorage
 }

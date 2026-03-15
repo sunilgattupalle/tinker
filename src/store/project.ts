@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import type VirtualMachine from 'scratch-vm'
 import type { UIBlock, UISprite } from '@/types'
 import { getBlocksForTarget, getScriptRoots } from '@/scratch/blockAdapter'
+import { initializeScratchVM, loadDefaultProject } from '@/scratch/setup'
+import { setSpriteVM, addDefaultSprite, deleteSprite as deleteSpriteAdapter } from '@/scratch/spriteAdapter'
 
 export interface ProjectStore {
   vm: VirtualMachine | null
@@ -22,6 +24,7 @@ export interface ProjectStore {
   setProjectName: (name: string) => void
   initializeVM: (vm: VirtualMachine) => void
   refreshBlocks: () => void
+  canvasSetup: (canvas: HTMLCanvasElement) => void
 }
 
 function extractTargets(vm: VirtualMachine): UISprite[] {
@@ -30,10 +33,10 @@ function extractTargets(vm: VirtualMachine): UISprite[] {
     .map((t) => ({
       id: t.id,
       name: t.sprite.name,
-      x: t.x,
-      y: t.y,
-      direction: t.direction,
-      size: t.size,
+      x: Math.round(t.x),
+      y: Math.round(t.y),
+      direction: Math.round(t.direction),
+      size: Math.round(t.size),
       visible: t.visible,
       costumeName: t.sprite.costumes[t.currentCostume]?.name ?? '',
       isStage: t.isStage,
@@ -60,8 +63,23 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     })
   },
 
-  addSprite: async () => undefined,
-  deleteSprite: () => undefined,
+  addSprite: async () => {
+    try {
+      await addDefaultSprite()
+    } catch {
+      // scratch-vm may throw if storage not ready
+    }
+  },
+
+  deleteSprite: (targetId) => {
+    const { vm } = get()
+    if (!vm) return
+    try {
+      deleteSpriteAdapter(targetId)
+    } catch {
+      // cannot delete last sprite or stage
+    }
+  },
 
   greenFlag: () => {
     const { vm } = get()
@@ -89,7 +107,11 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     await vm.loadProject(data)
   },
 
-  loadDefaultProject: async () => undefined,
+  loadDefaultProject: async () => {
+    const { vm } = get()
+    if (!vm) return
+    await loadDefaultProject(vm)
+  },
 
   setProjectName: (name) => set({ projectName: name }),
 
@@ -99,6 +121,20 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set({
       blocks: getBlocksForTarget(editingTargetId),
       scriptRoots: getScriptRoots(editingTargetId),
+    })
+  },
+
+  canvasSetup: (canvas: HTMLCanvasElement) => {
+    const existing = get().vm
+    if (existing) return
+
+    const vm = initializeScratchVM(canvas)
+    setSpriteVM(vm)
+    vm.start()
+    get().initializeVM(vm)
+
+    loadDefaultProject(vm).catch(() => {
+      // default project load failed — VM will still work with empty project
     })
   },
 
@@ -127,7 +163,6 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     vmInstance.on('PROJECT_RUN_START', () => set({ isRunning: true }))
     vmInstance.on('PROJECT_RUN_STOP', () => set({ isRunning: false }))
 
-    // Set initial state
     const targets = extractTargets(vmInstance)
     const editingId = vmInstance.editingTarget?.id ?? targets[0]?.id ?? null
     if (editingId && vmInstance.editingTarget?.id !== editingId) {
