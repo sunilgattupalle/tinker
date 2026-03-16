@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "docs:html": "node scripts/md-to-html.mjs docs/arduino-plan.md docs/architecture.md docs/design-system.md docs/future/community-architecture.md specs/08-multi-mode.md specs/09-web-mode.md"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -37,6 +38,7 @@
     "@typescript-eslint/parser": "^8.57.0",
     "@vitejs/plugin-react": "^5.2.0",
     "autoprefixer": "^10.4.27",
+    "marked": "^12.0.0",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
